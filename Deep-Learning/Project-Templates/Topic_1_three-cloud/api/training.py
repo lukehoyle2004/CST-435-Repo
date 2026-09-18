@@ -7,11 +7,29 @@ returns held-out metrics plus the fitted weights.
 """
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 from torch import nn
+
+_CAP = 1e9  # sentinel used to represent a diverged (NaN/Inf) metric or loss value
+
+
+def _safe_float(x: float, cap: float = _CAP) -> float:
+    """Clamp NaN/Inf to a large finite sentinel so the value stays JSON-serializable.
+
+    A diverging training run can legitimately produce NaN or +/-inf loss and
+    metrics. JSON (and Postgres jsonb/float columns) can't represent those, so
+    instead of crashing the request we record a clearly-out-of-range number --
+    which is itself useful evidence of divergence for the run-history table.
+    """
+    if math.isnan(x):
+        return cap
+    if math.isinf(x):
+        return cap if x > 0 else -cap
+    return x
 
 
 def _train_test_split(
@@ -31,7 +49,11 @@ def _metrics(y_true: torch.Tensor, y_pred: torch.Tensor) -> Dict[str, float]:
     ss_res = torch.sum(err**2)
     ss_tot = torch.sum((y_true - y_true.mean()) ** 2)
     r2 = (1.0 - ss_res / ss_tot).item() if ss_tot > 0 else 0.0
-    return {"mse": mse, "mae": mae, "r2": r2}
+    return {
+        "mse": _safe_float(mse),
+        "mae": _safe_float(mae),
+        "r2": _safe_float(r2),
+    }
 
 
 def train_linear_regression(
@@ -79,7 +101,7 @@ def train_linear_regression(
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item() * xb.shape[0]
-        loss_history.append(epoch_loss / n)
+        loss_history.append(_safe_float(epoch_loss / n))
 
     model.eval()
     with torch.no_grad():
@@ -87,8 +109,8 @@ def train_linear_regression(
         metrics = _metrics(y_test_t, test_pred)
 
     weights = {
-        "slope": float(model.weight.item()),
-        "intercept": float(model.bias.item()),
+        "slope": _safe_float(float(model.weight.item())),
+        "intercept": _safe_float(float(model.bias.item())),
     }
     return metrics, weights, loss_history
 
