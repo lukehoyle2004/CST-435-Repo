@@ -5,5 +5,5 @@ pydantic==2.9.2
 # CPU-only torch keeps the Render build small and free-tier friendly.
 torch==2.4.1
 numpy==1.26.4
-supabase==2.7.4
+supabase==2.15.3
 python-dotenv==1.0.1
