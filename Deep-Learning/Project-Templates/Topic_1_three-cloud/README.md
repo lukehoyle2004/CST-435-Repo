@@ -12,9 +12,11 @@
 
 | Tier | Platform | URL |
 |------|----------|-----|
+|**GitHub Repository:** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_1_three-cloud |
 | **UI** | Streamlit Community Cloud | https://cst-435-repo-bfgbqrhpiwe8tkbkqfz5vw.streamlit.app/ |
-| **API** | Render.com | https://regress-it-api-ci19.onrender.com |
+| **API** | Render.com | https://regress-it-api-ci19.onrender.com/docs |
 | **Data** | Supabase | https://ftsrfgtwmzqgkdqdndni.supabase.co (project ref: `ftsrfgtwmzqgkdqdndni`) |
+| **Migration file:** | `db/migrations/001_init.sql` (in this repo) |
 
 ---
 
