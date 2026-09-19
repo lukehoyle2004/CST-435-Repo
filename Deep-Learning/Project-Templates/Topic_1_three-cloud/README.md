@@ -5,15 +5,16 @@
 > your own accounts, and reuse the exact same pattern for the other templates in
 > this repository.
 
-## Live deployment URLs (fill these in)
+**Name:** Luke Hoyle
+**Section:** CST-435 (AIT-204 assignment, Topic 1 — Three-Cloud Product)
+
+## Live deployment URLs
 
 | Tier | Platform | URL |
 |------|----------|-----|
-| **UI** | Streamlit Community Cloud | `https://<your-app>.streamlit.app` |
-| **API** | Render.com | `https://<your-api>.onrender.com` |
-| **Data** | Supabase | `https://<your-project-ref>.supabase.co` |
-
-> Replace the placeholders above with your real URLs once deployed.
+| **UI** | Streamlit Community Cloud | https://cst-435-repo-bfgbqrhpiwe8tkbkqfz5vw.streamlit.app/ |
+| **API** | Render.com | https://regress-it-api-ci19.onrender.com |
+| **Data** | Supabase | https://ftsrfgtwmzqgkdqdndni.supabase.co (project ref: `ftsrfgtwmzqgkdqdndni`) |
 
 ---
 
@@ -39,8 +40,8 @@ and browse run history.
 ```
 
 - **UI never touches the model or writes SQL.** It calls the API over HTTPS and
-  performs one read-only `SELECT` on `runs` with the anon public key.
-- **API owns the model and all writes**, using the Supabase **service-role** key.
+  performs one read-only `SELECT` on `runs` with the publishable (anon-equivalent) key.
+- **API owns the model and all writes**, using the Supabase **secret** (service-role-equivalent) key.
 - **Supabase is the single source of truth** for datasets, runs, and predictions.
 
 See [`TUTORIAL.md`](./TUTORIAL.md) for the full step-by-step build and deploy guide.
@@ -77,17 +78,18 @@ three-cloud/
 ## Quickstart (local)
 
 ```bash
-cd three-cloud
+cd Deep-Learning/Project-Templates/Topic_1_three-cloud
 
 # 1. Install everything (both tiers + test tools)
-python -m venv .venv && source .venv/bin/activate
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
 
 # 2. Run the tests (6 pass; the live-Supabase test skips without creds)
 pytest -q
 
 # 3. Configure secrets
-cp .env.example .env                                   # API: SUPABASE_URL + SERVICE key
+cp .env.example .env                                   # API: SUPABASE_URL + SECRET key
 cp ui/.streamlit/secrets.toml.example ui/.streamlit/secrets.toml
 
 # 4. Run the API
@@ -113,6 +115,41 @@ from `render.yaml` on Render → deploy the UI on Streamlit Community Cloud.
 | `GET`  | `/healthz` | Liveness / DB ping |
 | `GET`  | `/version` | Build SHA + framework versions |
 
+---
+
+## Engineering Report
+
+### Decision Justifications
+
+**Learning rate.** I ran six training jobs on the same dataset. Anything from 0.0015 to 0.025 converged fine, landing at a held-out R² between 0.982 and 0.987 within 100 epochs. I picked 0.02 as the default. It converges faster than 0.0015 without the wobble that starts showing up as you push the rate
+higher. Then I tried 1.5. The gradient updates overshot every single step and the weights blew up to infinity within a few epochs. I had to cap MSE/MAE/R² at a sentinel value (1e9) just so the run wouldn't crash the whole app trying
+to serialize infinity as JSON.
+
+![alt text](image-2.png)
+
+![alt text](image-1.png)
+
+**Stopping criterion.** I used a flat 100 epochs instead of stopping early based on loss improvement. For a model with two parameters and a clean synthetic dataset, 100 epochs is way more than enough to converge unless the run is actively diverging, so a fixed budget kept things simple. The downside:
+a bad learning rate still burns all 100 epochs before it returns. Checking for NaN/Inf loss and bailing out early would fix that, and it's the obvious next thing to add.
+
+**Validation split.** 80/20 train/test, seeded so it's reproducible. With 500 points and a model this simple (just a slope and an intercept), 20% held out is plenty to get a stable R² without starving the training set.
+
+**Why the run history table matters.** Every run's hyperparameters and metrics get written to Supabase and show up as a plain table in the Run History tab. I don't have to rerun anything or squint at overlapping loss curves to compare configs. Sort by lr or r2 and the converging runs (R² ~0.98)
+and the one diverging run (pinned at the sentinel) are obvious at a glance.
+
+![alt text](image-3.png)
+
+### Worldview Reflection
+
+A model that reports R² of 0.98 can look a lot more trustworthy than it actually is to someone who can't check the assumptions behind it. Honesty, in a Christian sense, isn't just not lying. It means making sure the other person actually understands what they're relying on. Proverbs 11:1 calls a false balance an abomination, and handing a client a clean dashboard without
+explaining that it's trained on 500 synthetic points from a known linear function, with zero guarantee it holds up outside that range, is basically a false balance. Technically true, but built to look better than it's earned.
+
+Stewardship is the other half of it. A data scientist is trusted with a client's decisions and their money, and stewarding that well means telling people the model's weak points before they ask, not waiting to get caught.
+Concretely: this demo only handles one input feature, it has no way to notice when new data falls outside what it trained on, and the lr=1.5 run shows how a normal-looking setting can silently produce garbage with no clear error.
+That's exactly why the run history table and health checks exist. Building that protection into the product itself, instead of counting on the client to know what to ask, is what stewardship actually looks like here.
+
+---
+
 ## Reusing this pattern
 
 The three-cloud split and the file layout stay identical for every product. Swap
@@ -124,10 +161,11 @@ final section of [`TUTORIAL.md`](./TUTORIAL.md).
 
 ## Checklist
 
-- [ ] Three live URLs listed at the top of this README
-- [ ] `datasets`, `runs`, `predictions` tables in Supabase with RLS
-- [ ] 6+ API endpoints
-- [ ] 5 Streamlit tabs (Concepts, Train, Predict, Run History, Model Card)
-- [ ] PyTorch training with held-out MSE/MAE/R²
-- [ ] pytest suite passing
-- [ ] `MODEL_CARD.md` completed
+- [x] Three live URLs listed at the top of this README
+- [x] `datasets`, `runs`, `predictions` tables in Supabase with RLS
+- [x] 6+ API endpoints
+- [x] 5 Streamlit tabs (Concepts, Train, Predict, Run History, Model Card)
+- [x] PyTorch training with held-out MSE/MAE/R²
+- [x] pytest suite passing
+- [x] `MODEL_CARD.md` completed
+- [X] Screenshots inserted in place of the two placeholders above
