@@ -7,15 +7,15 @@
 > so follow the main
 > [three-cloud TUTORIAL](../three-cloud/TUTORIAL.md).
 
-## Live deployment URLs (fill these in)
+## Live deployment URLs
 
 | Tier | Platform | URL |
 |------|----------|-----|
-| **UI** | Streamlit Community Cloud | `https://<your-app>.streamlit.app` |
-| **API** | Render.com | `https://<your-api>.onrender.com` |
-| **Data** | Supabase | `https://<your-project-ref>.supabase.co` |
+| **UI** | Streamlit Community Cloud | https://income-insight-luke.streamlit.app |
+| **API** | Render.com | https://income-insight-api.onrender.com |
+| **Data** | Supabase | https://yaqjquaklabercwjxldv.supabase.co |
 
-> Replace the placeholders with your real URLs once deployed.
+> The Render free tier sleeps when idle; the first request can take 30–60 s to wake it.
 
 ---
 
