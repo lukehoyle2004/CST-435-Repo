@@ -6,6 +6,7 @@ services:
   - type: web
     name: income-insight-api
     runtime: python
+    rootDir: Deep-Learning/Project-Templates/Topic_2_income-insight
     plan: free
     buildCommand: "pip install -r api/requirements.txt"
     startCommand: "uvicorn api.main:app --host 0.0.0.0 --port $PORT"

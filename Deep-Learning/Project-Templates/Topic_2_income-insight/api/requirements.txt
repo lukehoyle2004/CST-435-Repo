@@ -3,7 +3,8 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.2
 # CPU-only torch keeps the Render build small and free-tier friendly.
-torch==2.4.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1+cpu
 numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.5.2
