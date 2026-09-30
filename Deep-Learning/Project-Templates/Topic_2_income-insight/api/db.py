@@ -18,7 +18,12 @@ from __future__ import annotations
 import os
 from typing import List, Optional
 
+from dotenv import load_dotenv
 from supabase import Client, create_client
+
+# Load a local .env for development; on Render there is no .env and the real
+# environment variables are used instead.
+load_dotenv()
 
 _client: Optional[Client] = None
 
