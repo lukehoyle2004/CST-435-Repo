@@ -13,6 +13,8 @@ Configuration comes from st.secrets (see .streamlit/secrets.toml.example):
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import requests
 import streamlit as st
@@ -104,18 +106,29 @@ with train_tab:
     batch_size = c3.number_input("Batch size", value=32, min_value=1, step=1)
     epochs = c4.number_input("Epochs", value=100, min_value=1, step=10)
 
+    resp = None
     if st.button("Run training", type="primary"):
         with st.spinner("Training on the FastAPI service..."):
-            resp = api_post(
-                "/train",
-                {
-                    "dataset_id": int(dataset_id),
-                    "hidden_dim": int(hidden_dim),
-                    "lr": float(lr),
-                    "batch_size": int(batch_size),
-                    "epochs": int(epochs),
-                },
-            )
+            try:
+                resp = api_post(
+                    "/train",
+                    {
+                        "dataset_id": int(dataset_id),
+                        "hidden_dim": int(hidden_dim),
+                        "lr": float(lr),
+                        "batch_size": int(batch_size),
+                        "epochs": int(epochs),
+                    },
+                )
+            except requests.RequestException as exc:
+                # A timeout here must not crash the other tabs. The free Render
+                # tier is slow; the run may still finish and appear in Run History.
+                st.error(
+                    f"Training request failed: {exc}. If it timed out, the run may "
+                    "still finish on the API -- check Run History, or try fewer "
+                    "epochs / a larger batch size."
+                )
+    if resp:
         st.session_state["last_run_id"] = resp["run_id"]
         m = resp["metrics"]
         st.success(f"Run {resp['run_id']} complete.")
@@ -186,7 +199,9 @@ with history_tab:
 with card_tab:
     st.header("Model Card")
     try:
-        with open("MODEL_CARD.md", "r", encoding="utf-8") as fh:
+        # Resolve relative to this file: Streamlit Cloud runs from the repo root.
+        model_card = Path(__file__).resolve().parent.parent / "MODEL_CARD.md"
+        with open(model_card, "r", encoding="utf-8") as fh:
             st.markdown(fh.read())
     except FileNotFoundError:
         st.warning("MODEL_CARD.md not found.")
