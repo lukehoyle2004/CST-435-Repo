@@ -1,10 +1,9 @@
-"""Supabase round-trip test.
+"""Live Supabase round trip: write a run, read it back, and query both SQL views.
 
-Inserts a fixture dataset, trains against it, and confirms a run row was written.
-Skipped automatically unless real Supabase credentials are present, so the suite
-still passes offline. Run it against a real (throwaway) project with:
-
-    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... pytest tests/test_supabase_roundtrip.py
+Skipped automatically unless real Supabase credentials are present (a local .env
+or exported env vars), so CI and offline runs stay green. Requires migrations
+001-003 and the loaded adult_income table. The run it creates is deleted at the
+end (cascading to its artifact and predictions) so it never pollutes Run History.
 """
 from __future__ import annotations
 
@@ -17,23 +16,36 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_dataset_train_run_roundtrip():
+def test_train_writes_run_and_sql_views_read_it():
     from fastapi.testclient import TestClient
 
+    from api import db
     from api.main import app
 
-    with TestClient(app) as c:
-        ds = c.post(
-            "/datasets", json={"name": "roundtrip", "n_rows": 500, "noise": 1.0}
-        ).json()
-        resp = c.post(
-            "/train",
-            json={"dataset_id": ds["id"], "hidden_dim": 16, "lr": 0.01,
-                  "batch_size": 32, "epochs": 50},
-        )
-        assert resp.status_code == 200
-        run_id = resp.json()["run_id"]
+    run_id = None
+    try:
+        with TestClient(app) as c:
+            resp = c.post(
+                "/train",
+                json={"hidden_dim": 8, "epochs": 2, "max_train_rows": 1000,
+                      "activation": "tanh", "seed": 4242},
+            )
+            assert resp.status_code == 200, resp.text
+            body = resp.json()
+            run_id = body["run_id"]
+            assert body["n_test_predictions_logged"] > 0
 
-        got = c.get(f"/runs/{run_id}")
-        assert got.status_code == 200
-        assert got.json()["dataset_id"] == ds["id"]
+            detail = c.get(f"/runs/{run_id}").json()
+            assert detail["data_source"] == "adult_income"
+            assert detail["confusion"] is not None
+
+            audit = c.get("/bias_audit", params={"run_id": run_id, "attribute": "sex"})
+            assert audit.status_code == 200, audit.text
+            groups = {g["grp"] for g in audit.json()["groups"]}
+            assert groups == {"Female", "Male"}
+
+            rows = c.get("/activation_comparison").json()
+            assert any(r["seed"] == 4242 and r["activation"] == "tanh" for r in rows)
+    finally:
+        if run_id is not None:
+            db.get_client().table("runs").delete().eq("id", run_id).execute()
