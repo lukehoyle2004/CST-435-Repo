@@ -1,8 +1,14 @@
-# Default hyperparameters for a training run.
-# The API accepts these from the request body; this file documents sane starting
-# values and gives later products (with CLI training) a config to load.
+# Default hyperparameters for a training run (mirrors TrainRequest in
+# shared/schemas.py). The API accepts every value from the request body; this
+# file documents the defaults used for the results in the README.
+n_layers: 2
 hidden_dim: 32
-lr: 0.01
-batch_size: 32
-epochs: 100
-test_size: 0.2
+activation: tanh        # chosen by the matched activation comparison (README)
+lr: 0.005
+batch_size: 256
+epochs: 15
+seed: 0
+max_train_rows: 15000   # null = all ~34k training rows (may exceed Render's timeout)
+include_protected: false
+# Fixed by db/load_adult.py, identical for every run:
+split: {train: 0.70, val: 0.15, test: 0.15, seed: 42}
