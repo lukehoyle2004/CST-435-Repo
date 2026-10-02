@@ -1,0 +1,38 @@
+# Runs the Income-Insight (Topic 2) pytest suite on every push and pull request
+# that touches the project. No secrets are configured, so the live Supabase
+# round-trip test skips and everything else runs against the in-memory fake.
+name: Income-Insight tests
+
+on:
+  push:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_2_income-insight/**"
+      - ".github/workflows/income-insight-tests.yml"
+  pull_request:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_2_income-insight/**"
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Deep-Learning/Project-Templates/Topic_2_income-insight
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # matches PYTHON_VERSION in render.yaml
+          cache: pip
+          cache-dependency-path: |
+            Deep-Learning/Project-Templates/Topic_2_income-insight/api/requirements.txt
+            Deep-Learning/Project-Templates/Topic_2_income-insight/ui/requirements.txt
+            Deep-Learning/Project-Templates/Topic_2_income-insight/requirements-dev.txt
+
+      - name: Install dependencies (CPU-only torch)
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest -q
