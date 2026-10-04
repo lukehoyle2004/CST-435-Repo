@@ -159,7 +159,7 @@ Default model (sex and race are **not** inputs), threshold 0.5:
 
 - **FNR gap 0.12:** the model misses **nearly half (48%) of the women who truly
   earn >50K**, compared with 36% of the men.
-- **FPR gap 0.093:** men who earn ≤50K are about 4.6× as likely as women to be
+- **FPR gap 0.094:** men who earn ≤50K are about 4.6× as likely as women to be
   wrongly flagged as high earners.
 - **Leaving sex out of the inputs did not remove the gap.** The model never sees
   `sex`, yet the gap is there, because `relationship` (Husband / Wife) and
@@ -314,5 +314,28 @@ streamlit run ui/app.py                    # terminal 2 (needs ui/.streamlit/sec
 
 | Member | Contribution | Video walkthrough |
 |--------|--------------|-------------------|
-| Luke Hoyle | Three-cloud deployment, API, data pipeline, bias audit, Streamlit dashboard, tests, documentation | _link_ |
+| Luke Hoyle | Three-cloud deployment, API, data pipeline, bias audit, Streamlit dashboard, tests, documentation | [Watch on YouTube](https://youtu.be/gx1ofo8YFBQ) |
 | _Partner_ | Engineering report: matrix-form derivation, XOR worked example, analysis, ethics reflection | _link_ |
+
+### Individual contribution statements
+
+**Luke Hoyle.** I deployed and connected all three clouds (Supabase, the FastAPI
+service on Render, and the Streamlit dashboard). I moved the project from
+synthetic data to the real UCI Adult dataset with a fixed stratified split and
+wrote the loader. I extended the model to a configurable deep MLP with five
+activation functions, train / validation / test evaluation, calibration,
+per-class metrics, and permutation importance, and I stored diverged runs as
+NULL instead of a sentinel. I built the bias audit and the activation comparison
+as SQL views, added the Score a CSV, Model Performance, and Bias Audit tabs,
+wrote the test suite (including the Supabase-failure path) and the GitHub Actions
+workflow, and wrote the README and model card.
+
+**_Partner_.** _Contribution statement._
+
+### Video walkthroughs
+
+**Luke Hoyle:** the product end to end, the theory behind it, and my contribution.
+
+[![Income-Insight walkthrough — Luke Hoyle](https://img.youtube.com/vi/gx1ofo8YFBQ/hqdefault.jpg)](https://youtu.be/gx1ofo8YFBQ)
+
+**_Partner_:** _video link._
