@@ -18,6 +18,11 @@ read a bias audit of false-positive and false-negative rates by sex and race.
 
 > The Render free tier sleeps when idle; the first request can take 30–60 s to wake it.
 
+**Engineering report:** [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md):
+forward and backward propagation in matrix form with every shape, the XOR worked
+example, the algorithm, analysis of the findings, the ethical consideration, and
+references.
+
 ---
 
 ## Architecture
@@ -314,8 +319,8 @@ streamlit run ui/app.py                    # terminal 2 (needs ui/.streamlit/sec
 
 | Member | Contribution | Video walkthrough |
 |--------|--------------|-------------------|
-| Luke Hoyle | Three-cloud deployment, API, data pipeline, bias audit, Streamlit dashboard, tests, documentation | [Watch on YouTube](https://youtu.be/gx1ofo8YFBQ) |
-| _Partner_ | Engineering report: matrix-form derivation, XOR worked example, analysis, ethics reflection | _link_ |
+| Luke Hoyle | Three-cloud deployment, API, data pipeline, bias audit, Streamlit dashboard, tests, engineering report, documentation | [Watch on YouTube](https://youtu.be/Vvrmqfs3mQ8) |
+| Second team member | No contribution to this submission | — |
 
 ### Individual contribution statements
 
@@ -328,14 +333,15 @@ per-class metrics, and permutation importance, and I stored diverged runs as
 NULL instead of a sentinel. I built the bias audit and the activation comparison
 as SQL views, added the Score a CSV, Model Performance, and Bias Audit tabs,
 wrote the test suite (including the Supabase-failure path) and the GitHub Actions
-workflow, and wrote the README and model card.
+workflow, and wrote the README and model card. I also wrote the engineering
+report: the matrix-form forward and backward propagation derivation with every
+shape, the XOR worked example, the algorithm, the analysis of the findings, and
+the ethical consideration.
 
-**_Partner_.** _Contribution statement._
+**Second team member.** Did not contribute to this submission.
 
 ### Video walkthroughs
 
 **Luke Hoyle:** the product end to end, the theory behind it, and my contribution.
 
-[![Income-Insight walkthrough — Luke Hoyle](https://img.youtube.com/vi/gx1ofo8YFBQ/hqdefault.jpg)](https://youtu.be/gx1ofo8YFBQ)
-
-**_Partner_:** _video link._
+▶ [Watch the walkthrough on YouTube](https://youtu.be/Vvrmqfs3mQ8)
