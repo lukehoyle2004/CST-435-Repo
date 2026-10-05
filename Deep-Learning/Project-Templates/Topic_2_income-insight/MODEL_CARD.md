@@ -14,7 +14,7 @@
   seed 0, on a 15,000-row sample of the training split (all settings are stored
   with each run in Supabase). Runs that diverge are stored with NULL metrics and
   never served.
-- **Version / owners:** Income-Insight v2 · Luke Hoyle and partner, CST-435 / AIT-204, October 2026.
+- **Version / owners:** Income-Insight v2 · Luke Hoyle, CST-435 / AIT-204, October 2026.
 
 ## Intended use
 - **Primary:** a teaching and demonstration service for the full

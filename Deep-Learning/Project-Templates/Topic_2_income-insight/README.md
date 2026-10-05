@@ -261,7 +261,9 @@ Database failures return **503** with a readable message, bad input returns
 ```
 Topic_2_income-insight/
 ├── README.md · MODEL_CARD.md
-├── docs/CONCEPTS.md          # Concepts tab content
+├── docs/
+│   ├── ENGINEERING_REPORT.md # Matrix-form backprop, XOR example, analysis, ethics
+│   └── CONCEPTS.md           # Concepts tab content
 ├── shared/
 │   ├── schemas.py            # Pydantic API contract
 │   └── data.py               # Feature contract, UCI cleaning, fixed split, test fixture generator
