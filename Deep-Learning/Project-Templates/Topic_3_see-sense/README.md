@@ -1,140 +1,140 @@
-# See-Sense — Three-Cloud Template (CNN Image Classifier + Grad-CAM)
+# See-Sense — a CIFAR-10 Vision-Classification Service with Grad-CAM Explanations
 
-> The same three-cloud architecture as the base template
-> (**Streamlit UI ⇄ FastAPI Model API ⇄ Supabase Data**), with the middle box
-> swapped for a **PyTorch CNN + Grad-CAM** doing image classification with
-> visual explanations. The deploy steps are identical, so follow the main
-> [three-cloud TUTORIAL](../three-cloud/TUTORIAL.md).
+| | Link |
+|---|---|
+| **Streamlit UI** | _TBD_ |
+| **Render API** (docs at `/docs`) | _TBD_ |
+| **Supabase project ref** | _TBD_ |
+| **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense |
+| **Video walkthrough (Luke Hoyle)** | _TBD_ |
+| **Engineering report** | _TBD_ |
 
-## Live deployment URLs (fill these in)
+CST-435 Topic 3, Product 3. Author: Luke Hoyle.
 
-| Tier | Platform | URL |
-|------|----------|-----|
-| **UI** | Streamlit Community Cloud | `https://<your-app>.streamlit.app` |
-| **API** | Render.com | `https://<your-api>.onrender.com` |
-| **Data** | Supabase | `https://<your-project-ref>.supabase.co` |
+## Product pitch
 
-> Replace the placeholders above with your real URLs once deployed.
+A teaching team wants an image-recognition demo for an undergraduate AI-literacy
+course. Upload a photo and See-Sense names it, shows its probability for each
+of the ten classes, and paints a Grad-CAM heatmap over the pixels
+that drove the decision. A public Recent Classifications wall shows what others
+asked (anonymized to a hash), and every classification links back to the
+training run that produced it. Visitors should leave knowing that a CNN does
+not see the way they do: it sees a 32×32 thumbnail, must choose one of ten
+labels, and often keys on water, sky or grass rather than the object.
 
----
-
-## What it does
-
-See-Sense classifies small grayscale images into one of four geometric shape
-classes (**synthetic**: horizontal bar, vertical bar, diagonal line, filled
-block) with a compact CNN, and — crucially — returns a **Grad-CAM** heatmap that
-shows *where the network looked* to make each call. You pick the learning rate,
-batch size, and epochs; the API trains with Adam + cross-entropy, reports
-held-out **accuracy / macro-F1**, and persists every run. The UI lets you train,
-upload an image or generate a sample to classify, view the Grad-CAM overlay,
-review run history, and read the model card. Only the image's **sha256 hash** is
-logged — never the pixels.
-
-## What changed from the base template (the reusable pattern in action)
-
-The three-cloud split and the file layout are identical to *Regress-It*. Only the
-middle box changed:
-
-| Aspect | Regress-It | See-Sense |
-|--------|----------------------|---------------------|
-| Model | `nn.Linear(1,1)` + SGD | small CNN (2 conv blocks) + Adam |
-| Task | regression | multi-class image classification |
-| Metrics | MSE / MAE / R² | accuracy / macro-F1 |
-| Input | one scalar `x` | a 28×28 grayscale image |
-| Explainability | — | **Grad-CAM** heatmap overlay |
-| Extra endpoints | — | `/predict_sample`, `/classes` |
-| Privacy invariant | — | store image **hash**, never pixels |
-| Tables | datasets · runs · predictions | datasets · runs · **run_artifacts** · image_metadata |
-
-Everything else — UI as a thin client (no torch, no image libs), API as the only
-writer, Supabase as the single source of truth, service-role vs anon keys, RLS on
-`runs`, the four test categories — is unchanged.
+**Why CIFAR-10 instead of Fashion-MNIST?** Color photos of everyday objects are
+what visitors will upload, so the demo's failures are realistic and teachable.
+Fashion-MNIST is grayscale, centered product shots on a black background; a phone
+photo of a shoe is wildly out of distribution and the lesson would be lost.
+CIFAR-10 also makes the gap between models visible (80% vs 87%); on
+Fashion-MNIST both would score ~90%+.
 
 ## Architecture
 
 ```
-┌──────────────────────┐   HTTPS/JSON    ┌──────────────────────────┐   service-role   ┌──────────────────┐
-│  Streamlit Cloud     │ ──────────────► │  FastAPI on Render        │ ───────────────► │  Supabase        │
-│  (ui/app.py)         │  + multipart    │  (api/main.py)            │   full access    │  Postgres        │
-│  thin client, no ML  │    upload       │  CNN + Grad-CAM (PIL)     │                  │  datasets/runs/  │
-│  base64-decodes PNGs │                 │                          │                  │  run_artifacts/  │
-│                      │ ◄────anon key,  │                          │                  │  image_metadata  │
-│                      │   read-only ────┼──────────────────────────┼──────────────────►│  (RLS: anon can  │
-└──────────────────────┘   SELECT runs   └──────────────────────────┘                  │   only SELECT    │
-                                                                                        │   runs)          │
-                                                                                        └──────────────────┘
+ Browser
+    │
+    ▼
+┌──────────────────────────┐  multipart POST /predict   ┌──────────────────────────────┐
+│ Streamlit Community Cloud│ ─────────────────────────► │ FastAPI on Render.com         │
+│ ui/app.py (thin client)  │ ◄───────────────────────── │ api/main.py                   │
+│ no torch, no PIL         │  JSON: label, probs, top-5,│ baseline.pt + improved.pt      │
+│ 5 tabs                   │  base64 Grad-CAM PNGs      │ preprocessing + Grad-CAM hook  │
+└────────────┬─────────────┘                            └───────────────┬──────────────┘
+             │ anon key, SELECT only (RLS)                              │ service-role key
+             │ runs, predictions ⨝ runs                                 │ INSERT predictions,
+             ▼                                                          ▼ image_metadata
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ Supabase Postgres: runs · predictions · image_metadata          │
+          │ view model_comparison · no image bytes anywhere                  │
+          └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Project structure
+Training happens offline (laptop CPU) in the companion project
+`AIT-204-CNN/cifar10_project`; `scripts/export_models.py` copies the weights
+into `models/` and `db/seed_runs.py` writes one `runs` row per training run.
 
-```
-see-sense/
-├── README.md                 # This file
-├── MODEL_CARD.md             # Model details, Grad-CAM, privacy, limitations
-├── shared/
-│   ├── schemas.py            # Pydantic API contract
-│   └── data.py               # Synthetic shape-image generator + class contract
-├── api/                      # FastAPI tier (deploys to Render)
-│   ├── main.py               # Endpoints
-│   ├── training.py           # CNN + Grad-CAM, artifact (de)serialization, PNG overlay
-│   ├── db.py                 # Supabase (service-role) data access
-│   ├── configs/default.yaml
-│   └── requirements.txt
-├── ui/
-│   ├── app.py                # 5-tab thin client (upload / generate + Grad-CAM view)
-│   ├── requirements.txt      # No torch / no image libs
-│   └── .streamlit/secrets.toml.example
-├── db/
-│   ├── migrations/001_init.sql
-│   └── seed.py
-├── tests/                    # pytest suite
-├── render.yaml               # Render blueprint
-├── requirements-dev.txt
-└── .env.example
-```
+## Results (CIFAR-10 test set, 10,000 images)
 
-## Quickstart (local)
+| Model | Run | Techniques | Test acc (TTA) | Single view | Macro F1 |
+|---|---|---|---|---|---|
+| Baseline | `b0c1d2f1` | none | 80.25% | 78.03% | 0.7996 |
+| Improved | `eb17638c` | augmentation, BatchNorm, dropout, weight decay, label smoothing, one-cycle LR | **87.45%** | 86.61% | 0.8733 |
 
-```bash
-cd see-sense
+Both runs: same architecture skeleton, 30 epochs, batch 128, seed 0, the same
+45k/5k/10k split, ~288k parameters. The headline numbers come from SQL:
+`select * from model_comparison;`. The baseline overfits (97% train vs 78.5%
+val); the improved model's regularizers close that gap.
 
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
-
-pytest -q            # 6 pass; the live-Supabase test skips without creds
-
-cp .env.example .env                                   # API: SUPABASE_URL + SERVICE key
-cp ui/.streamlit/secrets.toml.example ui/.streamlit/secrets.toml
-
-uvicorn api.main:app --reload --port 8000              # terminal 1
-streamlit run ui/app.py                                # terminal 2
-```
-
-To deploy to the three clouds, follow **Part E** of the main
-[TUTORIAL](../three-cloud/TUTORIAL.md): apply
-`db/migrations/001_init.sql` in the Supabase SQL Editor → deploy the API from
-`render.yaml` on Render → deploy the UI on Streamlit Community Cloud.
-
-## API endpoints
+## API
 
 | Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/datasets` | Register a synthetic image dataset (params only) |
-| `POST` | `/train` | Train the CNN, persist run + model artifact, return metrics |
-| `GET`  | `/runs/{run_id}` | Fetch one run |
-| `GET`  | `/runs` | List recent runs |
-| `POST` | `/predict` | Classify an uploaded image; return Grad-CAM; log the hash |
-| `POST` | `/predict_sample` | Generate + classify a sample; return Grad-CAM |
-| `GET`  | `/classes` | The class labels the model predicts over |
-| `GET`  | `/healthz` | Liveness / DB ping |
-| `GET`  | `/version` | Build SHA + torch version |
+|---|---|---|
+| `POST` | `/predict` | Multipart image upload → label, 10 probabilities, top-5, Grad-CAM PNGs (base64); logs hash to `predictions` + `image_metadata` |
+| `GET` | `/runs`, `/runs/{run_id}` | Training runs from Supabase |
+| `GET` | `/predictions` | Recent predictions joined to `runs` |
+| `GET` | `/gallery` | Both models on 12 held-out test images (6 right, 6 wrong for the improved model) |
+| `GET` | `/classes`, `/models` | Label list; served models and their run ids |
+| `GET` | `/healthz`, `/version` | Liveness + DB ping; git SHA + torch version |
 
-## Checklist
+## Streamlit tabs
 
-- [ ] Three live URLs listed at the top of this README
-- [ ] `datasets`, `runs`, `run_artifacts`, `image_metadata` tables with RLS
-- [ ] 6+ API endpoints
-- [ ] 5 Streamlit tabs (Concepts, Train, Predict, Run History, Model Card)
-- [ ] CNN training with held-out accuracy / macro-F1 + Grad-CAM explanations
-- [ ] pytest suite passing
-- [ ] `MODEL_CARD.md` completed
+**Concepts** (convolution, output size, receptive field, Grad-CAM derivation in
+LaTeX) · **Try It** (upload, top-5, Grad-CAM side by side) · **Compare Models**
+(metrics, curves, confusion matrices, per-class precision/recall, held-out
+gallery) · **Recent Classifications** (anon-key Supabase query, sortable table,
+class histogram, drill-down to the run) · **Model Card**.
+
+## Data persisted / not persisted
+
+| Persisted (Supabase) | Never persisted |
+|---|---|
+| SHA-256 of the upload | Image bytes or thumbnails |
+| Width, height, format, byte size | Filename |
+| Predicted label, confidence, top-5 | EXIF metadata (GPS, camera, time) |
+| Run id that served it, TTA flag, latency | IP address, user agent, session id |
+| Training runs: hyperparameters, metrics, curves | |
+
+**Why no raw images:** people upload photos of their homes, kids and faces. The
+demo needs none of that to work, a hash is enough to count repeat uploads, and
+data we never store cannot leak, be subpoenaed, or be repurposed to train a
+face model. The anon key can read the wall because the wall contains nothing
+but hashes and labels.
+
+## Run locally
+
+```bash
+python -m venv .venv && .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest -q                                   # 35 pass; live Supabase test skips without .env
+
+copy .env.example .env                      # SUPABASE_URL + SUPABASE_SERVICE_KEY
+copy ui\.streamlit\secrets.toml.example ui\.streamlit\secrets.toml
+uvicorn api.main:app --reload --port 8000   # terminal 1
+streamlit run ui/app.py                     # terminal 2
+```
+
+## Deploy
+
+1. **Supabase:** SQL Editor → run `db/migrations/001_init.sql` → `python -m db.seed_runs`.
+2. **Render:** New → Blueprint → this repo (`render.yaml` sets `rootDir`); add
+   `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
+3. **Streamlit Cloud:** main file `Deep-Learning/Project-Templates/Topic_3_see-sense/ui/app.py`,
+   Python 3.11; paste `API_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` into Secrets.
+
+## Tests
+
+`tests/` covers the multipart `/predict` smoke test, Grad-CAM overlay dimensions
+= input dimensions, a regression test on a fixed CIFAR-10 reference image for
+both models, a live Supabase round-trip (`/predict` → `predictions` row linked
+to a `runs` row), and a Supabase-outage path (`/predict` still answers with
+`logged: false`; DB endpoints return 503). CI: `.github/workflows/see-sense-tests.yml`.
+
+## Individual contribution (Luke Hoyle)
+
+- Trained the improved CNN and the matched baseline; added the `--baseline` mode
+- Wrote the SQL migration (`runs`, `predictions`, `image_metadata`, `model_comparison`, RLS)
+- Built the FastAPI service, Grad-CAM overlay rendering, and Supabase logging
+- Built the five-tab Streamlit client and the Compare Models gallery
+- Wrote the pytest suite, CI workflow, model card, and this README
+- Deployed all three clouds
