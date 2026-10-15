@@ -1,0 +1,46 @@
+{
+  "epochs": 30,
+  "batch_size": 128,
+  "lr": 0.01,
+  "weight_decay": 0.0,
+  "label_smoothing": 0.0,
+  "widths": [
+    32,
+    64,
+    128
+  ],
+  "subset": 0,
+  "val_size": 5000,
+  "no_augment": true,
+  "baseline": true,
+  "device": "cpu",
+  "threads": 0,
+  "seed": 0,
+  "resume": false,
+  "augment": {
+    "flip": false,
+    "rotate": 0.0,
+    "translate": 0,
+    "jitter": 0.0,
+    "cutout": 0,
+    "cutout_p": 0.0
+  },
+  "run_id": "b0c1d2f1",
+  "hardware": "12th Gen Intel(R) Core(TM) i7-1250U (10 threads)",
+  "classes": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "train_images": 45000,
+  "val_images": 5000,
+  "test_images": 10000,
+  "params": 288298
+}
