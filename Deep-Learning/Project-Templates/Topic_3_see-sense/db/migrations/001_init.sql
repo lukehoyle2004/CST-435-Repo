@@ -1,78 +1,127 @@
--- 001_init.sql
--- Tables for the "See-Sense" product: CNN image classifier + Grad-CAM.
--- Apply this in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- 001_init.sql -- See-Sense: CIFAR-10 CNN classifier + Grad-CAM.
+-- Apply in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
+-- Safe to re-run (drops and recreates the See-Sense objects only).
+--
+-- Privacy invariant: NO raw image bytes are ever stored. An upload is reduced to
+-- its SHA-256 hash, its dimensions, and the model's answer.
+
+drop view  if exists model_comparison;
+drop table if exists image_metadata;
+drop table if exists predictions;
+drop table if exists run_artifacts;   -- from the synthetic-shapes template
+drop table if exists runs;
+drop table if exists datasets;        -- from the synthetic-shapes template
 
 -- ---------------------------------------------------------------------------
--- datasets: one row per synthetic image dataset. Only the generation PARAMETERS
--- are stored -- the pixels are regenerated deterministically from `seed`, so no
--- raw images live in the database.
+-- runs: one row per training run (hyperparameters, train/val/test metrics,
+-- per-class report, curves, and a pointer to the weights file the API serves).
+-- Trained offline, inserted by db/seed_runs.py.
 -- ---------------------------------------------------------------------------
-create table if not exists datasets (
-    id          bigint generated always as identity primary key,
-    name        text        not null,
-    n_rows      integer     not null,
-    img_size    integer     not null,
-    n_classes   integer     not null,
-    noise       double precision not null,
-    seed        integer     not null,
-    created_at  timestamptz not null default now()
+create table runs (
+    run_id            text primary key,              -- 8-hex id from train.py
+    name              text not null unique,          -- 'baseline' | 'improved'
+    display_name      text not null,
+    architecture      text not null,
+    techniques        text[] not null default '{}',  -- what the improved run adds
+    dataset           text not null default 'CIFAR-10',
+    epochs            integer not null,
+    batch_size        integer not null,
+    lr                double precision not null,
+    lr_schedule       text not null,
+    weight_decay      double precision not null,
+    label_smoothing   double precision not null,
+    augment           jsonb not null,
+    seed              integer not null,
+    params            integer not null,
+    train_images      integer not null,
+    val_images        integer not null,
+    test_images       integer not null,
+    hardware          text,
+    train_seconds     double precision,
+    best_epoch        integer not null,
+    train_loss        double precision not null,
+    train_acc         double precision not null,     -- percent, at best_epoch
+    val_loss          double precision not null,
+    val_acc           double precision not null,
+    test_acc          double precision not null,     -- single view, percent
+    test_acc_tta      double precision not null,     -- flip TTA (what /predict serves)
+    macro_f1          double precision not null,
+    per_class         jsonb not null,                -- {class: {precision, recall, f1}}
+    confusion_matrix  jsonb not null,                -- 10x10 counts, rows = true class
+    history           jsonb not null,                -- per-epoch loss / accuracy / lr
+    weights_path      text not null,
+    created_at        timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------------
--- runs: one row per training job (held-out metrics). Anon-readable.
+-- predictions: one row per /predict call.
 -- ---------------------------------------------------------------------------
-create table if not exists runs (
-    id          bigint generated always as identity primary key,
-    dataset_id  bigint      not null references datasets (id) on delete cascade,
-    lr          double precision not null,
-    batch_size  integer     not null,
-    epochs      integer     not null,
-    accuracy    double precision not null,
-    macro_f1    double precision not null,
-    created_at  timestamptz not null default now()
+create table predictions (
+    id                bigint generated always as identity primary key,
+    image_sha256      text not null check (image_sha256 ~ '^[0-9a-f]{64}$'),
+    predicted_label   integer not null check (predicted_label between 0 and 9),
+    predicted_class   text not null,
+    confidence        double precision not null check (confidence between 0 and 1),
+    top5              jsonb not null,                -- [{class_name, probability}] x 5
+    served_by_run_id  text not null references runs (run_id) on delete cascade,
+    tta               boolean not null default true,
+    latency_ms        double precision,
+    created_at        timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------------
--- run_artifacts: the fitted CNN, base64-encoded. Not anon-readable.
+-- image_metadata: hash + dimensions + label. Never pixels.
 -- ---------------------------------------------------------------------------
-create table if not exists run_artifacts (
-    run_id      bigint      primary key references runs (id) on delete cascade,
-    model_b64   text        not null,
-    created_at  timestamptz not null default now()
+create table image_metadata (
+    id                bigint generated always as identity primary key,
+    prediction_id     bigint not null references predictions (id) on delete cascade,
+    image_sha256      text not null,
+    width             integer not null check (width > 0),
+    height            integer not null check (height > 0),
+    format            text,                          -- PNG / JPEG / ...
+    size_bytes        integer,
+    predicted_class   text not null,
+    created_at        timestamptz not null default now()
 );
 
--- ---------------------------------------------------------------------------
--- image_metadata: one row per served prediction. We store the image's SHA-256
--- hash + shape + predicted class -- NEVER the raw pixels (privacy invariant).
--- ---------------------------------------------------------------------------
-create table if not exists image_metadata (
-    id          bigint generated always as identity primary key,
-    run_id      bigint      not null references runs (id) on delete cascade,
-    sha256      text        not null,
-    width       integer     not null,
-    height      integer     not null,
-    label       integer     not null,
-    class_name  text        not null,
-    confidence  double precision not null,
-    created_at  timestamptz not null default now()
-);
-
-create index if not exists idx_runs_dataset_id       on runs (dataset_id);
-create index if not exists idx_runs_created_at        on runs (created_at desc);
-create index if not exists idx_image_metadata_run_id  on image_metadata (run_id);
+create index idx_predictions_created_at on predictions (created_at desc);
+create index idx_predictions_run        on predictions (served_by_run_id);
+create index idx_predictions_sha        on predictions (image_sha256);
+create index idx_image_metadata_pred    on image_metadata (prediction_id);
 
 -- ---------------------------------------------------------------------------
--- Row Level Security. The Streamlit "Run History" tab reads `runs` with the
--- ANON key, so we allow anonymous SELECT on runs only. The API uses the
--- SERVICE-ROLE key which bypasses RLS, so all writes stay server-side.
+-- model_comparison: the headline numbers, straight from SQL.
 -- ---------------------------------------------------------------------------
-alter table datasets       enable row level security;
+create view model_comparison with (security_invoker = true) as
+select r.name,
+       r.display_name,
+       r.run_id,
+       r.techniques,
+       r.epochs,
+       r.batch_size,
+       r.params,
+       round(r.test_acc_tta::numeric, 2)                         as test_acc_tta,
+       round(r.test_acc::numeric, 2)                             as test_acc,
+       round(r.macro_f1::numeric, 4)                             as macro_f1,
+       round(r.val_acc::numeric, 2)                              as val_acc,
+       round((r.train_acc - r.val_acc)::numeric, 2)              as generalization_gap,
+       round((r.test_acc_tta - b.test_acc_tta)::numeric, 2)      as gain_over_baseline,
+       (select count(*) from predictions p where p.served_by_run_id = r.run_id) as served_predictions
+from runs r
+cross join (select test_acc_tta from runs where name = 'baseline') b;
+
+-- ---------------------------------------------------------------------------
+-- Row Level Security. The API writes with the SERVICE-ROLE key (bypasses RLS).
+-- The Streamlit UI reads with the public ANON key: SELECT only, no writes.
+-- predictions/image_metadata hold only hashes + labels, so they are safe to
+-- show on the public Recent Classifications wall.
+-- ---------------------------------------------------------------------------
 alter table runs           enable row level security;
-alter table run_artifacts  enable row level security;
+alter table predictions    enable row level security;
 alter table image_metadata enable row level security;
 
-drop policy if exists "anon can read runs" on runs;
-create policy "anon can read runs"
-    on runs for select
-    to anon
-    using (true);
+create policy "anon read runs"           on runs           for select to anon using (true);
+create policy "anon read predictions"    on predictions    for select to anon using (true);
+create policy "anon read image_metadata" on image_metadata for select to anon using (true);
+
+grant select on model_comparison to anon;
