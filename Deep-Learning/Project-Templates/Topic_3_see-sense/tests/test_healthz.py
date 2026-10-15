@@ -1,29 +1,32 @@
-"""Smoke tests for /healthz, /version, /classes."""
+"""Smoke tests for /healthz, /version, /classes, /models, and the OpenAPI docs."""
 from __future__ import annotations
 
-from shared.data import CLASS_NAMES, N_CLASSES
+from seesense import CLASSES
 
 
 def test_healthz_ok(client):
-    resp = client.get("/healthz")
-    assert resp.status_code == 200
-    body = resp.json()
+    body = client.get("/healthz").json()
     assert body["status"] == "ok"
-    assert body["model_loader"] is True
-    assert body["supabase"] is True
+    assert body["db"] is True
+    assert set(body["models_loaded"]) == {"baseline", "improved"}
 
 
 def test_version_reports_torch(client):
-    resp = client.get("/version")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "torch_version" in body
-    assert "git_sha" in body
+    body = client.get("/version").json()
+    assert body["torch"].startswith("2.")
+    assert body["git_sha"]
 
 
 def test_classes_lists_labels(client):
-    resp = client.get("/classes")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["classes"] == CLASS_NAMES
-    assert body["n_classes"] == N_CLASSES
+    assert client.get("/classes").json()["classes"] == CLASSES
+
+
+def test_models_point_at_persisted_runs(client):
+    served = {m["name"]: m["run_id"] for m in client.get("/models").json()}
+    assert {client.store.runs[rid]["name"] for rid in served.values()} == {"baseline", "improved"}
+
+
+def test_docs_are_tagged(client):
+    spec = client.get("/openapi.json").json()
+    assert {t["name"] for t in spec["tags"]} == {"predict", "runs", "predictions", "meta"}
+    assert spec["paths"]["/predict"]["post"]["tags"] == ["predict"]

@@ -1,19 +1,18 @@
-"""Request-schema tests for the prediction endpoints."""
+"""Request-schema tests for /predict and the list endpoints."""
 from __future__ import annotations
 
-
-def test_predict_sample_rejects_missing_run_id(client):
-    # Missing 'run_id' -> 422 Unprocessable Entity from Pydantic validation.
-    resp = client.post("/predict_sample", json={"seed": 0})
-    assert resp.status_code == 422
+from .conftest import png_bytes
 
 
-def test_predict_sample_rejects_wrong_type(client):
-    resp = client.post("/predict_sample", json={"run_id": "not-an-int", "seed": 0})
-    assert resp.status_code == 422
+def test_predict_requires_a_file(client):
+    assert client.post("/predict", data={"model": "improved"}).status_code == 422
 
 
-def test_predict_upload_requires_a_file(client):
-    # Multipart form without the 'file' part -> 422.
-    resp = client.post("/predict", data={"run_id": 1})
-    assert resp.status_code == 422
+def test_predict_rejects_non_boolean_tta(client):
+    r = client.post("/predict", files={"file": ("x.png", png_bytes(), "image/png")}, data={"tta": "maybe"})
+    assert r.status_code == 422
+
+
+def test_list_limits_are_validated(client):
+    assert client.get("/runs", params={"limit": 0}).status_code == 422
+    assert client.get("/predictions", params={"limit": 10_000}).status_code == 422
