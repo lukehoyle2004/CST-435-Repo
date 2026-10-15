@@ -1,50 +1,67 @@
-"""FastAPI model service -- Cloud #2 (deployed on Render.com).
+"""FastAPI model service -- Cloud #2 (Render.com).
 
-Responsibilities:
-  * expose the CNN behind HTTP so the Streamlit UI can call it over HTTPS,
-  * read dataset parameters from Supabase before training,
-  * write run rows, model artifacts, and image metadata (hash only) back.
+Hosts both trained CIFAR-10 CNNs (baseline + improved), the preprocessing, and
+the Grad-CAM hook. Logs every prediction to Supabase as a hash + dimensions +
+answer -- never the image. No UI code lives here.
 
-There is NO UI code here and NO business logic in the UI -- separation of
-concerns across the three clouds. This is "See-Sense": image
-classification with a small CNN + Grad-CAM explainability.
+    uvicorn api.main:app --reload --port 8000      # then open /docs
 """
 from __future__ import annotations
 
-import hashlib
 import io
+import logging
 import os
-import subprocess
+import time
+from contextlib import asynccontextmanager
+from typing import Literal
 
 import numpy as np
 import torch
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 from api import db
-from api.training import predict_with_cam, train_cnn
-from shared.data import CLASS_NAMES, IMG_SIZE, N_CLASSES, generate_one
-from shared.schemas import (
-    ClassesResponse,
-    ClassMetrics,
-    Dataset,
-    DatasetCreate,
-    Health,
-    PredictResponse,
-    PredictSampleRequest,
-    Run,
-    TrainRequest,
-    TrainResponse,
-    Version,
-)
+from seesense import CLASSES, MODELS_DIR
+from seesense.inference import explain, open_image, png_b64, sha256_hex
+from seesense.model import count_parameters, load_exported
+
+log = logging.getLogger("seesense")
+
+# Render's free tier is a fraction of one CPU; more threads only contend.
+torch.set_num_threads(int(os.environ.get("TORCH_NUM_THREADS", "1")))
+
+MODEL_NAMES = ("improved", "baseline")
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+MODELS: dict[str, tuple] = {}     # name -> (model, config)
+
+
+def load_models() -> None:
+    for name in MODEL_NAMES:
+        if name not in MODELS:
+            MODELS[name] = load_exported(MODELS_DIR / name)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    load_models()   # load once at startup, not on the first request
+    yield
+
+
+TAGS = [
+    {"name": "predict", "description": "Classify an uploaded image and explain it with Grad-CAM."},
+    {"name": "runs", "description": "Training runs persisted in Supabase."},
+    {"name": "predictions", "description": "The anonymized prediction log (hashes only)."},
+    {"name": "meta", "description": "Health, version, and label metadata."},
+]
 
 app = FastAPI(
     title="See-Sense API",
-    description="CNN image classifier + Grad-CAM for the three-cloud stack.",
+    description="CIFAR-10 CNN classifier with Grad-CAM explanations. Raw images are never stored.",
     version="1.0.0",
+    openapi_tags=TAGS,
+    lifespan=lifespan,
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
@@ -53,174 +70,152 @@ app.add_middleware(
 )
 
 
-def _git_sha() -> str:
-    if os.environ.get("RENDER_GIT_COMMIT"):
-        return os.environ["RENDER_GIT_COMMIT"][:7]
+def get_model(name: str):
+    load_models()
+    if name not in MODELS:
+        raise HTTPException(422, f"model must be one of {list(MODEL_NAMES)}")
+    return MODELS[name]
+
+
+def db_unavailable(exc: Exception) -> HTTPException:
+    log.warning("supabase error: %s", exc)
+    return HTTPException(503, "Database temporarily unavailable. Please retry shortly.")
+
+
+# --------------------------------------------------------------------------- predict
+@app.post("/predict", tags=["predict"])
+async def predict(
+    file: UploadFile = File(..., description="PNG / JPEG / WebP / BMP, at most 5 MB"),
+    model: Literal["improved", "baseline"] = Form("improved"),
+    tta: bool = Form(True, description="Average with the mirror image (flip test-time augmentation)"),
+):
+    """Classify one image. Returns the label, all 10 probabilities, the top 5, and two
+    base64 PNG Grad-CAM overlays (full size and the 32x32 model view). Logs the image's
+    SHA-256 hash and dimensions -- not the image -- to `predictions` + `image_metadata`."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty upload.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Image is larger than 5 MB.")
     try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            .decode()
-            .strip()
+        img = open_image(data)
+    except ValueError as exc:
+        raise HTTPException(415, str(exc))
+    fmt = Image.open(io.BytesIO(data)).format
+
+    net, config = get_model(model)
+    start = time.perf_counter()
+    res = explain(net, img, tta=tta)
+    latency_ms = (time.perf_counter() - start) * 1000
+    digest = sha256_hex(data)
+
+    prediction_id, logged = None, False
+    try:
+        prediction_id = db.log_prediction(
+            dict(image_sha256=digest, predicted_label=res["label"], predicted_class=res["class_name"],
+                 confidence=res["confidence"], top5=res["top5"], served_by_run_id=config["run_id"],
+                 tta=tta, latency_ms=round(latency_ms, 2)),
+            dict(image_sha256=digest, width=img.width, height=img.height, format=fmt,
+                 size_bytes=len(data), predicted_class=res["class_name"]),
         )
-    except Exception:
-        return "unknown"
+        logged = True
+    except Exception as exc:  # the prediction still goes back to the user
+        log.warning("could not log prediction: %s", exc)
 
-
-def _project_ref() -> str | None:
-    url = os.environ.get("SUPABASE_URL", "")
-    if url.startswith("https://"):
-        return url.split("//", 1)[1].split(".", 1)[0]
-    return None
-
-
-def _artifact_or_404(run_id: int) -> str:
-    model_b64 = db.get_run_artifact(run_id)
-    if model_b64 is None:
-        raise HTTPException(status_code=404, detail="run_id not found")
-    return model_b64
-
-
-def _to_gray_array(raw: bytes, img_size: int) -> np.ndarray:
-    """Decode arbitrary image bytes to a grayscale [img_size, img_size] uint8 array."""
-    img = Image.open(io.BytesIO(raw)).convert("L").resize((img_size, img_size))
-    return np.asarray(img, dtype=np.uint8)
-
-
-# ---------------------------------------------------------------------------
-# datasets
-# ---------------------------------------------------------------------------
-@app.post("/datasets", response_model=Dataset, tags=["datasets"])
-def create_dataset(req: DatasetCreate) -> Dataset:
-    """Register a synthetic image dataset (parameters only; pixels come from seed)."""
-    row = db.insert_dataset(
-        name=req.name,
-        n_rows=req.n_rows,
-        img_size=IMG_SIZE,
-        n_classes=N_CLASSES,
-        noise=req.noise,
-        seed=req.seed,
-    )
-    return Dataset(**{k: row[k] for k in Dataset.model_fields})
-
-
-# ---------------------------------------------------------------------------
-# training
-# ---------------------------------------------------------------------------
-@app.post("/train", response_model=TrainResponse, tags=["training"])
-def train(req: TrainRequest) -> TrainResponse:
-    """Read dataset params from Supabase, train the CNN, persist run + artifact."""
-    dataset = db.get_dataset(req.dataset_id)
-    if dataset is None:
-        raise HTTPException(status_code=404, detail="dataset_id not found")
-
-    metrics, model_b64, _loss = train_cnn(
-        n_rows=dataset["n_rows"],
-        img_size=dataset["img_size"],
-        noise=dataset["noise"],
-        seed=dataset["seed"],
-        lr=req.lr,
-        batch_size=req.batch_size,
-        epochs=req.epochs,
-        test_size=req.test_size,
-    )
-    run = db.insert_run(
-        dataset_id=req.dataset_id,
-        lr=req.lr,
-        batch_size=req.batch_size,
-        epochs=req.epochs,
-        metrics=metrics,
-        model_b64=model_b64,
-    )
-    return TrainResponse(run_id=run["id"], metrics=ClassMetrics(**metrics))
-
-
-@app.get("/runs/{run_id}", response_model=Run, tags=["training"])
-def get_run(run_id: int) -> Run:
-    row = db.get_run(run_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="run_id not found")
-    return Run(**{k: row[k] for k in Run.model_fields})
-
-
-@app.get("/runs", response_model=list[Run], tags=["training"])
-def list_runs() -> list[Run]:
-    rows = db.latest_runs(limit=50)
-    return [Run(**{k: r[k] for k in Run.model_fields}) for r in rows]
-
-
-# ---------------------------------------------------------------------------
-# prediction  (Grad-CAM)
-# ---------------------------------------------------------------------------
-def _predict_array(run_id: int, gray: np.ndarray, sha256: str, true_class: str | None):
-    model_b64 = _artifact_or_404(run_id)
-    result = predict_with_cam(model_b64, gray)
-    db.insert_image_metadata(
-        run_id=run_id,
-        sha256=sha256,
-        width=int(gray.shape[1]),
-        height=int(gray.shape[0]),
-        label=result["label"],
-        class_name=result["class_name"],
-        confidence=result["confidence"],
-    )
-    return PredictResponse(
-        run_id=run_id, image_sha256=sha256, true_class=true_class, **result
+    return dict(
+        label=res["label"],
+        class_name=res["class_name"],
+        confidence=res["confidence"],
+        probabilities=res["probabilities"],
+        top5=res["top5"],
+        gradcam_png=png_b64(res["overlay"]),
+        gradcam_size=list(res["overlay"].size),
+        model_view_png=png_b64(res["model_view"]),
+        image_sha256=digest,
+        width=img.width,
+        height=img.height,
+        model=model,
+        served_by_run_id=config["run_id"],
+        tta=tta,
+        latency_ms=round(latency_ms, 2),
+        prediction_id=prediction_id,
+        logged=logged,
     )
 
 
-@app.post("/predict", response_model=PredictResponse, tags=["prediction"])
-async def predict(run_id: int = Form(...), file: UploadFile = File(...)) -> PredictResponse:
-    """Classify an uploaded image and return a Grad-CAM overlay.
+@app.get("/gallery", tags=["predict"])
+def gallery():
+    """Both models on the same held-out gallery of CIFAR-10 test images (Compare Models tab)."""
+    g = np.load(MODELS_DIR / "gallery.npz")
+    items = []
+    for x, y, idx in zip(g["images"], g["labels"], g["test_index"]):
+        img = Image.fromarray(x.transpose(1, 2, 0)).resize((96, 96), Image.Resampling.NEAREST)
+        row = dict(test_index=int(idx), true_class=CLASSES[int(y)], image_png=png_b64(img), models={})
+        for name in MODEL_NAMES:
+            net, config = get_model(name)
+            r = explain(net, Image.fromarray(x.transpose(1, 2, 0)))
+            row["models"][name] = dict(class_name=r["class_name"], confidence=r["confidence"],
+                                       correct=r["label"] == int(y), run_id=config["run_id"],
+                                       gradcam_png=png_b64(r["model_view"]))
+        items.append(row)
+    return items
 
-    Only the image's sha256 hash + shape + prediction are logged -- never pixels.
-    """
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(status_code=422, detail="empty file")
+
+# --------------------------------------------------------------------------- runs
+@app.get("/runs", tags=["runs"])
+def runs(limit: int = Query(20, ge=1, le=100)):
+    """Recent training runs from Supabase."""
     try:
-        gray = _to_gray_array(raw, IMG_SIZE)
-    except Exception:
-        raise HTTPException(status_code=422, detail="could not decode image")
-    sha256 = hashlib.sha256(raw).hexdigest()
-    return _predict_array(run_id, gray, sha256, true_class=None)
+        return db.list_runs(limit)
+    except Exception as exc:
+        raise db_unavailable(exc)
 
 
-@app.post("/predict_sample", response_model=PredictResponse, tags=["prediction"])
-def predict_sample(req: PredictSampleRequest) -> PredictResponse:
-    """Generate a synthetic image, classify it, and return a Grad-CAM overlay.
-
-    Lets the UI demonstrate the model without the user uploading a file.
-    """
-    kind = req.true_class if (req.true_class is None or req.true_class < N_CLASSES) else None
-    gray, label = generate_one(img_size=IMG_SIZE, noise=0.1, seed=req.seed, kind=kind)
-    sha256 = hashlib.sha256(gray.tobytes()).hexdigest()
-    return _predict_array(req.run_id, gray, sha256, true_class=CLASS_NAMES[label])
-
-
-# ---------------------------------------------------------------------------
-# meta
-# ---------------------------------------------------------------------------
-@app.get("/classes", response_model=ClassesResponse, tags=["meta"])
-def classes() -> ClassesResponse:
-    """Return the class labels the model predicts over."""
-    return ClassesResponse(classes=CLASS_NAMES, n_classes=N_CLASSES)
+@app.get("/runs/{run_id}", tags=["runs"])
+def run_detail(run_id: str):
+    """One run with its per-class report, confusion matrix, and training curves."""
+    try:
+        row = db.get_run(run_id)
+    except Exception as exc:
+        raise db_unavailable(exc)
+    if row is None:
+        raise HTTPException(404, f"run {run_id} not found")
+    return row
 
 
-# ---------------------------------------------------------------------------
-# ops
-# ---------------------------------------------------------------------------
-@app.get("/healthz", response_model=Health, tags=["ops"])
-def healthz() -> Health:
-    supabase_ok = db.ping()
-    model_ok = torch.tensor([1.0]).sum().item() == 1.0
-    status = "ok" if (supabase_ok and model_ok) else "degraded"
-    return Health(status=status, model_loader=model_ok, supabase=supabase_ok)
+# --------------------------------------------------------------------------- predictions
+@app.get("/predictions", tags=["predictions"])
+def predictions(limit: int = Query(50, ge=1, le=500)):
+    """Recent predictions joined to the run that served them."""
+    try:
+        return db.recent_predictions(limit)
+    except Exception as exc:
+        raise db_unavailable(exc)
 
 
-@app.get("/version", response_model=Version, tags=["ops"])
-def version() -> Version:
-    return Version(
-        git_sha=_git_sha(),
-        torch_version=torch.__version__,
-        supabase_project_ref=_project_ref(),
-    )
+# --------------------------------------------------------------------------- meta
+@app.get("/classes", tags=["meta"])
+def classes():
+    return {"classes": CLASSES}
+
+
+@app.get("/models", tags=["meta"])
+def models():
+    """The served models and the run each one came from."""
+    out = []
+    for name in MODEL_NAMES:
+        net, config = get_model(name)
+        out.append(dict(name=name, run_id=config["run_id"], params=count_parameters(net),
+                        epochs=config["epochs"], baseline=bool(config.get("baseline"))))
+    return out
+
+
+@app.get("/healthz", tags=["meta"])
+def healthz():
+    return {"status": "ok", "models_loaded": sorted(MODELS), "db": db.ping()}
+
+
+@app.get("/version", tags=["meta"])
+def version():
+    return {"git_sha": os.environ.get("RENDER_GIT_COMMIT", "local")[:7],
+            "torch": torch.__version__, "api": app.version}
