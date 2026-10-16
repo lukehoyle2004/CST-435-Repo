@@ -7,7 +7,7 @@
 | **Supabase project ref** | `siwzvvvbdjrbbymetrek` |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense |
 | **Video walkthrough (Luke Hoyle)** | _TBD_ |
-| **Engineering report** | _TBD_ |
+| **Engineering report** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |
 
 CST-435 Topic 3, Product 3. Author: Luke Hoyle.
 
@@ -84,6 +84,18 @@ LaTeX) · **Try It** (upload, top-5, Grad-CAM side by side) · **Compare Models*
 (metrics, curves, confusion matrices, per-class precision/recall, held-out
 gallery) · **Recent Classifications** (anon-key Supabase query, sortable table,
 class histogram, drill-down to the run) · **Model Card**.
+
+## Dataset card (CIFAR-10)
+
+| | |
+|---|---|
+| Source | Krizhevsky (2009), University of Toronto; loaded via `torchvision.datasets.CIFAR10` |
+| Size | 60,000 RGB images, 32×32, 10 balanced classes (6,000 each) |
+| Split used | 45,000 train / 5,000 validation (seed 0) / 10,000 official test |
+| Classes | airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck |
+| Known issues | Tiny resolution; objects centered and filling the frame; strong background cues (sky for planes and birds, water for ships); narrow subtypes (few large or flightless birds); a small number of label errors in the test set |
+| People | Not a people dataset; See-Sense should not be used to classify people |
+| License | Free for research and education |
 
 ## Data persisted / not persisted
 
