@@ -4,7 +4,7 @@
 |---|---|
 | **Streamlit UI** | https://see-sense-luke.streamlit.app |
 | **Render API** (docs at `/docs`) | https://see-sense-api.onrender.com |
-| **Supabase project ref** | `siwzvvvbdjrbbymetrek` |
+| **Supabase (Postgres)** | https://siwzvvvbdjrbbymetrek.supabase.co (project ref `siwzvvvbdjrbbymetrek`) |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense |
 | **Video walkthrough (Luke Hoyle)** | https://youtu.be/FbRoQ2bi20s |
 | **Engineering report** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |

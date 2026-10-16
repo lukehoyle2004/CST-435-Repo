@@ -1,7 +1,7 @@
 # See-Sense: Engineering Report
 
 **Author:** Luke Hoyle · CST-435 Topic 3 · **GitHub:** https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense
-**Live:** [Streamlit UI](https://see-sense-luke.streamlit.app) · [Render API](https://see-sense-api.onrender.com/docs) · Supabase project `siwzvvvbdjrbbymetrek`
+**Live:** [Streamlit UI](https://see-sense-luke.streamlit.app) · [Render API](https://see-sense-api.onrender.com/docs) · [Supabase](https://siwzvvvbdjrbbymetrek.supabase.co) (project `siwzvvvbdjrbbymetrek`)
 
 ## 1. Problem
 
