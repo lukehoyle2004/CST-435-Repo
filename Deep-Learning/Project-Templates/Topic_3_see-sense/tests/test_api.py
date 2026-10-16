@@ -93,7 +93,9 @@ def test_meta_endpoints(client):
 
 def test_runs_and_predictions(client):
     runs = client.get("/runs").json()
-    assert {r["name"] for r in runs} == {"baseline", "improved"}
+    names = {r["name"] for r in runs}
+    assert {"baseline", "improved"} <= names            # the two served models
+    assert all(n in {"baseline", "improved"} or n.startswith("no_") for n in names)  # + ablations
     assert client.get(f"/runs/{runs[0]['run_id']}").status_code == 200
     assert client.get("/runs/nope").status_code == 404
     post_image(client, png_bytes())

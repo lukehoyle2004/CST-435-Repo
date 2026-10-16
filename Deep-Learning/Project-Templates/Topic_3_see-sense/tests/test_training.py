@@ -36,8 +36,20 @@ def test_improved_uses_at_least_three_techniques():
 
 
 def test_param_counts_match_runs():
-    for name, run in RUNS.items():
-        assert count_parameters(load_exported(MODELS_DIR / name)[0]) == run["params"]
+    for name in ("baseline", "improved"):  # only the served models ship weights
+        assert count_parameters(load_exported(MODELS_DIR / name)[0]) == RUNS[name]["params"]
+
+
+def test_ablations_are_controlled_leave_one_out():
+    """Each ablation removes exactly one technique and keeps the improved run's seed and budget."""
+    imp = RUNS["improved"]
+    ablations = {n: r for n, r in RUNS.items() if n.startswith("no_")}
+    assert len(ablations) == 6
+    for name, run in ablations.items():
+        removed = set(imp["techniques"]) - set(run["techniques"])
+        assert removed == {name[3:]}, name
+        for key in ("seed", "epochs", "batch_size", "train_images", "val_images", "test_images"):
+            assert run[key] == imp[key], (name, key)
 
 
 def test_improved_beats_baseline():
