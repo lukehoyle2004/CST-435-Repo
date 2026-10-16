@@ -37,6 +37,16 @@ RUNS = {
     "improved": ("", "Improved CNN", ["augmentation", "batchnorm", "dropout", "weight_decay",
                                       "label_smoothing", "onecycle_lr"]),
 }
+ALL_TECHNIQUES = RUNS["improved"][2]
+ABLATIONS = {
+    # name: (technique removed from the improved recipe, human label)
+    "no_augmentation": ("augmentation", "Improved − augmentation"),
+    "no_batchnorm": ("batchnorm", "Improved − BatchNorm"),
+    "no_dropout": ("dropout", "Improved − dropout"),
+    "no_weight_decay": ("weight_decay", "Improved − weight decay"),
+    "no_label_smoothing": ("label_smoothing", "Improved − label smoothing"),
+    "no_onecycle_lr": ("onecycle_lr", "Improved − one-cycle LR"),
+}
 FIGURES = ["training_curves.png", "confusion_matrix.png", "confusion_matrix_norm.png",
            "per_class_metrics.png", "misclassified.png", "augmentation_examples.png"]
 
@@ -49,37 +59,51 @@ def load_test_set(src: Path):
 
 
 def export_run(src: Path, name: str) -> dict:
-    sub, label, techniques = RUNS[name]
-    art = src / "artifacts" / sub
+    """A served model (baseline / improved), or a leave-one-out ablation (summary row only)."""
+    ablation = name in ABLATIONS
+    if ablation:
+        removed, label = ABLATIONS[name]
+        art = src / "artifacts" / "ablations" / name
+        techniques = [t for t in ALL_TECHNIQUES if t != removed]
+    else:
+        sub, label, techniques = RUNS[name]
+        art = src / "artifacts" / sub
     ckpt = torch.load(art / "model.pth", map_location="cpu", weights_only=False)
     config = dict(ckpt["config"], baseline=name == "baseline")
     config.pop("out", None)
-    torch.save(ckpt["state_dict"], ROOT / "models" / f"{name}.pt")
-    (ROOT / "models" / f"{name}.json").write_text(json.dumps(config, indent=2))
+    if not ablation:  # only the two served models ship weights; ablations are evidence rows
+        torch.save(ckpt["state_dict"], ROOT / "models" / f"{name}.pt")
+        (ROOT / "models" / f"{name}.json").write_text(json.dumps(config, indent=2))
 
     metrics = json.loads((art / "metrics.json").read_text())
     history = json.loads((art / "history.json").read_text())
     best = next(h for h in history if h["epoch"] == ckpt["epoch"])
     rep = metrics["report"]
 
-    assets = ROOT / "ui" / "assets" / name
-    assets.mkdir(parents=True, exist_ok=True)
-    for fig in FIGURES:
-        if (art / fig).exists():
-            shutil.copy2(art / fig, assets / fig)
+    if not ablation:
+        assets = ROOT / "ui" / "assets" / name
+        assets.mkdir(parents=True, exist_ok=True)
+        for fig in FIGURES:
+            if (art / fig).exists():
+                shutil.copy2(art / fig, assets / fig)
+    if name == "baseline":
+        arch = "6 conv (3x3) in 3 blocks, no BatchNorm/dropout, GAP + Linear"
+    else:
+        arch = ("6 conv (3x3)" + (" + BatchNorm" if config.get("batchnorm", True) else "")
+                + " in 3 blocks" + (", Dropout2d, GAP + Dropout + Linear" if config.get("dropout", True)
+                                    else ", GAP + Linear"))
 
     return dict(
         run_id=config["run_id"],
         name=name,
         display_name=label,
-        architecture=("6 conv (3x3) in 3 blocks, no BatchNorm/dropout, GAP + Linear" if name == "baseline"
-                      else "6 conv (3x3) + BatchNorm in 3 blocks, Dropout2d, GAP + Dropout + Linear"),
+        architecture=arch,
         techniques=techniques,
         dataset="CIFAR-10",
         epochs=config["epochs"],
         batch_size=config["batch_size"],
         lr=config["lr"],
-        lr_schedule="constant" if name == "baseline" else "one-cycle",
+        lr_schedule=config.get("lr_schedule", "constant" if name == "baseline" else "one-cycle"),
         weight_decay=config["weight_decay"],
         label_smoothing=config["label_smoothing"],
         augment=config["augment"],
@@ -103,7 +127,7 @@ def export_run(src: Path, name: str) -> dict:
         confusion_matrix=metrics["confusion_matrix"],
         history=[{k: h[k] for k in ("epoch", "lr", "train_loss", "train_acc", "val_loss", "val_acc")}
                  for h in history],
-        weights_path=f"models/{name}.pt",
+        weights_path=f"models/{name}.pt" if not ablation else f"(not deployed) artifacts/ablations/{name}/model.pth",
     )
 
 
@@ -138,8 +162,21 @@ def build_gallery(test_x, test_y, n_right=6, n_wrong=6, seed=3):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", type=Path, default=ROOT.parents[3] / "AIT-204-CNN" / "cifar10_project")
-    args = ap.parse_args()
     (ROOT / "models").mkdir(exist_ok=True)
+
+    ap.add_argument("--ablations-only", action="store_true",
+                    help="append the leave-one-out rows to runs.json without re-exporting the served models")
+    args = ap.parse_args()
+    if args.ablations_only:
+        served = [r for r in json.loads((ROOT / "models" / "runs.json").read_text()) if r["name"] in RUNS]
+        done = [n for n in ABLATIONS if (args.src / "artifacts" / "ablations" / n / "metrics.json").exists()]
+        rows = served + [export_run(args.src, n) for n in done]
+        (ROOT / "models" / "runs.json").write_text(json.dumps(rows, indent=2))
+        imp = next(r for r in served if r["name"] == "improved")["test_acc_tta"]
+        for r in rows[len(served):]:
+            print(f"{r['name']:20s} run {r['run_id']}  test acc {r['test_acc_tta']:.2f}%  "
+                  f"drop vs improved {imp - r['test_acc_tta']:+.2f} pts")
+        return
 
     runs = [export_run(args.src, n) for n in RUNS]
     (ROOT / "models" / "runs.json").write_text(json.dumps(runs, indent=2))
