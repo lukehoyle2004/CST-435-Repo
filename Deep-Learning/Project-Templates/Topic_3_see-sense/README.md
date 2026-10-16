@@ -2,9 +2,9 @@
 
 | | Link |
 |---|---|
-| **Streamlit UI** | _TBD_ |
-| **Render API** (docs at `/docs`) | _TBD_ |
-| **Supabase project ref** | _TBD_ |
+| **Streamlit UI** | https://see-sense-luke.streamlit.app |
+| **Render API** (docs at `/docs`) | https://see-sense-api.onrender.com |
+| **Supabase project ref** | `siwzvvvbdjrbbymetrek` |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense |
 | **Video walkthrough (Luke Hoyle)** | _TBD_ |
 | **Engineering report** | _TBD_ |
