@@ -6,7 +6,7 @@
 | **Render API** (docs at `/docs`) | https://see-sense-api.onrender.com |
 | **Supabase project ref** | `siwzvvvbdjrbbymetrek` |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_3_see-sense |
-| **Video walkthrough (Luke Hoyle)** | _TBD_ |
+| **Video walkthrough (Luke Hoyle)** | https://youtu.be/FbRoQ2bi20s |
 | **Engineering report** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |
 
 CST-435 Topic 3, Product 3. Author: Luke Hoyle.
@@ -65,6 +65,15 @@ Both runs: same architecture skeleton, 30 epochs, batch 128, seed 0, the same
 45k/5k/10k split, ~288k parameters. The headline numbers come from SQL:
 `select * from model_comparison;`. The baseline overfits (97% train vs 78.5%
 val); the improved model's regularizers close that gap.
+
+**Which technique contributed most:** augmentation and dropout, the regularizers
+that target overfitting. The evidence is the train/val gap: the baseline's
+18.5-point gap disappears, and the improved model's train accuracy (83.2%) sits
+below validation (85.9%) because augmentation and dropout make training harder
+than evaluation. The weakest classes gained most (cat F1 0.61 → 0.76, bird
+0.72 → 0.82). One-cycle LR let the improved run converge in 30 epochs at a 10×
+higher peak rate. Single-technique ablations were not run, so these shares are
+inferred from the curves, not isolated (see the engineering report, §3 and §6).
 
 ## API
 
@@ -150,3 +159,15 @@ to a `runs` row), and a Supabase-outage path (`/predict` still answers with
 - Built the five-tab Streamlit client and the Compare Models gallery
 - Wrote the pytest suite, CI workflow, model card, and this README
 - Deployed all three clouds
+
+### Task list
+
+- [x] Train matched baseline and improved CNNs (same seed, epochs, batch, split)
+- [x] Export weights and seed both runs into Supabase `runs`
+- [x] Write the SQL schema, `model_comparison` view, and RLS policies
+- [x] Build the FastAPI `/predict` service with Grad-CAM and hash-only logging
+- [x] Build the five Streamlit tabs, including the held-out Grad-CAM gallery and class histogram
+- [x] Write the pytest suite (upload, Grad-CAM shape, frozen regression, Supabase round-trip, outage path) and CI
+- [x] Deploy Supabase, Render, and Streamlit Community Cloud
+- [x] Write the README, model card, dataset card, and engineering report
+- [x] Record the video walkthrough
