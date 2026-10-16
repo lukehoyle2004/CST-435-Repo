@@ -52,7 +52,20 @@ Both runs use the same skeleton (~288k parameters), 30 epochs, batch 128, seed 0
 
 The improved run adds augmentation (flip, ±10° rotation, 4-px translate, color jitter, cutout), BatchNorm, Dropout2d plus FC dropout, weight decay 5e-4, label smoothing 0.1 and a one-cycle LR schedule.
 
-**Where the gain came from.** The baseline memorizes: an 18.5-point train/val gap. The improved model's train accuracy sits *below* validation, because augmentation and dropout make training harder than evaluation. Regularization, not extra capacity, closed the gap. The weakest classes gained most: cat F1 0.61 → 0.76, bird 0.72 → 0.82, dog 0.73 → 0.81. Cat↔dog is still the top confusion (92 and 85 errors). Single-technique ablations were not run, so the share of each technique is not isolated (see §6).
+The baseline memorizes (an 18.5-point train/val gap). The weakest classes gained most: cat F1 0.61 → 0.76, bird 0.72 → 0.82. Cat↔dog is still the top confusion.
+
+**Leave-one-out ablations.** Six more runs each remove one technique from the improved recipe, with the same seed and budget; all are rows in `runs`, queried through the `ablation_comparison` view.
+
+| Removed | Test (TTA) | Contribution (pts) | Train − val |
+|---|---|---|---|
+| one-cycle LR (→ constant 0.01) | 81.59% | **+5.86** | −4.55 |
+| weight decay | 86.07% | +1.38 | −3.48 |
+| BatchNorm | 86.09% | +1.36 | −3.64 |
+| label smoothing | 87.99% | −0.54 | −3.21 |
+| augmentation | 88.98% | −1.53 | +8.19 |
+| dropout | 89.55% | −2.10 | −0.43 |
+
+The optimization techniques carried the gain: the one-cycle schedule is worth almost 6 points, and weight decay and BatchNorm about 1.4 each. Augmentation, dropout and label smoothing *cost* accuracy at a 30-epoch budget. With all six on, the model underfits (train 83.2% below validation 85.9%), so extra regularization removes more signal than noise. Augmentation still reduces overfitting (removing it opens an 8-point gap); it simply needs longer training to pay off. The contributions sum to 4.4 points, less than the 7.2-point total, because the techniques interact.
 
 ## 4. Grad-CAM
 
@@ -82,7 +95,7 @@ The Compare Models tab shows 12 held-out test images, 6 the improved model gets 
 
 ## 6. Limitations
 
-The ten-class, 32×32 setting fails on out-of-distribution photos by design. The next step is single-technique ablations (augmentation only, BatchNorm only, and so on) under the same seed and budget, each written to `runs`, to isolate each technique's contribution.
+The ten-class, 32×32 setting fails on out-of-distribution photos by design. Each ablation is a single seed, so differences under about 0.5 points are within noise, and the no-schedule run also lowers the peak LR. The ablations point to a better recipe than the served one (no dropout, 89.55%); the next step is training it longer, where augmentation should start to help.
 
 ## References
 
