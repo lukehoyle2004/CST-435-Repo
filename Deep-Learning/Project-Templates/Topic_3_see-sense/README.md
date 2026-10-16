@@ -66,14 +66,39 @@ Both runs: same architecture skeleton, 30 epochs, batch 128, seed 0, the same
 `select * from model_comparison;`. The baseline overfits (97% train vs 78.5%
 val); the improved model's regularizers close that gap.
 
-**Which technique contributed most:** augmentation and dropout, the regularizers
-that target overfitting. The evidence is the train/val gap: the baseline's
-18.5-point gap disappears, and the improved model's train accuracy (83.2%) sits
-below validation (85.9%) because augmentation and dropout make training harder
-than evaluation. The weakest classes gained most (cat F1 0.61 → 0.76, bird
-0.72 → 0.82). One-cycle LR let the improved run converge in 30 epochs at a 10×
-higher peak rate. Single-technique ablations were not run, so these shares are
-inferred from the curves, not isolated (see the engineering report, §3 and §6).
+### Ablations: which technique contributed most
+
+Leave-one-out: six more runs, each the improved recipe with ONE technique removed,
+same seed (0), 30 epochs, batch 128 and split. Every run is a row in `runs`; the
+table comes from `select * from ablation_comparison;` and is charted in the
+Compare Models tab.
+
+| Technique removed | Run | Test acc (TTA) | Contribution (pts) | Train − val gap |
+|---|---|---|---|---|
+| one-cycle LR → constant 0.01 | `eabe8c9b` | 81.59% | **+5.86** | −4.55 |
+| weight decay | `05412b86` | 86.07% | +1.38 | −3.48 |
+| BatchNorm | `37ffc726` | 86.09% | +1.36 | −3.64 |
+| label smoothing | `289eb4fd` | 87.99% | −0.54 | −3.21 |
+| augmentation | `fa11ca8c` | 88.98% | −1.53 | +8.19 |
+| dropout | `59b34c8f` | 89.55% | −2.10 | −0.43 |
+
+Contribution = improved accuracy (87.45%) minus the ablated run's accuracy.
+
+- **The one-cycle schedule contributed most** (+5.9 pts), followed by weight
+  decay and BatchNorm (about +1.4 each). These make optimization work inside a
+  30-epoch budget.
+- **Augmentation, dropout and label smoothing cost accuracy at this budget.**
+  With all six on, the model underfits (train 83.2% < val 85.9%), so extra
+  regularization takes away more than it gives. Augmentation still does its job,
+  since removing it opens an 8-point overfitting gap, but 30 epochs is too short
+  for it to pay off in accuracy.
+- The contributions sum to +4.4 pts, not the full +7.2 over the baseline: the
+  techniques interact, which is why each is measured against the full recipe.
+- Caveats: one seed per run, so differences under about 0.5 pts are within noise.
+  The no-schedule run uses the baseline's constant 0.01, so it measures the
+  schedule including its higher peak LR.
+- The served "improved" model is the planned recipe. The ablation points to a
+  better one (no dropout, 89.55%), which is the next thing to train.
 
 ## API
 
@@ -154,6 +179,7 @@ to a `runs` row), and a Supabase-outage path (`/predict` still answers with
 ## Individual contribution (Luke Hoyle)
 
 - Trained the improved CNN and the matched baseline; added the `--baseline` mode
+- Added leave-one-out ablation flags and ran the six ablation runs overnight
 - Wrote the SQL migration (`runs`, `predictions`, `image_metadata`, `model_comparison`, RLS)
 - Built the FastAPI service, Grad-CAM overlay rendering, and Supabase logging
 - Built the five-tab Streamlit client and the Compare Models gallery
@@ -164,6 +190,7 @@ to a `runs` row), and a Supabase-outage path (`/predict` still answers with
 
 - [x] Train matched baseline and improved CNNs (same seed, epochs, batch, split)
 - [x] Export weights and seed both runs into Supabase `runs`
+- [x] Run six leave-one-out ablations (same seed and budget), persist them to `runs`, and add the `ablation_comparison` view
 - [x] Write the SQL schema, `model_comparison` view, and RLS policies
 - [x] Build the FastAPI `/predict` service with Grad-CAM and hash-only logging
 - [x] Build the five Streamlit tabs, including the held-out Grad-CAM gallery and class histogram
