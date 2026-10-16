@@ -235,6 +235,32 @@ with tab_compare:
                                                                        legend=None), tooltip=["true", "pred", "n"])
                               + base.mark_text(fontSize=10).encode(text="n:Q"))
                              .properties(height=380, title=r["display_name"]), use_container_width=True)
+
+        st.subheader("Ablations: what each technique contributes")
+        abl = [r for n, r in runs.items() if n.startswith("no_")]
+        if abl:
+            ab = pd.DataFrame([dict(
+                technique=r["name"][3:].replace("_", " "), run_id=r["run_id"], test_acc=r["test_acc_tta"],
+                contribution=round(i["test_acc_tta"] - r["test_acc_tta"], 2),
+                gap=round(r["train_acc"] - r["val_acc"], 2), macro_f1=r["macro_f1"]) for r in abl]
+            ).sort_values("contribution", ascending=False)
+            st.caption(f"Leave-one-out: each run is the improved recipe with ONE technique removed, same seed "
+                       f"({i['seed']}), {i['epochs']} epochs, batch {i['batch_size']} and data split. "
+                       "Contribution = improved test accuracy − ablated test accuracy. "
+                       "SQL: `select * from ablation_comparison;`")
+            st.altair_chart(alt.Chart(ab).mark_bar().encode(
+                x=alt.X("contribution:Q", title="test accuracy lost when removed (pts)"),
+                y=alt.Y("technique:N", sort="-x", title=None),
+                color=alt.condition(alt.datum.contribution > 0, alt.value("#4c78a8"), alt.value("#e45756")),
+                tooltip=["technique", "run_id", alt.Tooltip("test_acc:Q", format=".2f"),
+                         alt.Tooltip("contribution:Q", format="+.2f"), alt.Tooltip("gap:Q", format=".2f")]
+            ).properties(height=230), use_container_width=True)
+            st.dataframe(ab.rename(columns={
+                "technique": "technique removed", "test_acc": "test acc (TTA)",
+                "contribution": "contribution (pts)", "gap": "train − val gap", "macro_f1": "macro F1"}),
+                hide_index=True, use_container_width=True)
+        else:
+            st.info("Ablation runs not seeded yet.")
     else:
         st.info("Run rows not found in Supabase yet (apply the migration and run `python -m db.seed_runs`).")
 
