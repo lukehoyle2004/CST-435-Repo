@@ -14,3 +14,6 @@ venv/
 
 # OS
 .DS_Store
+
+# IMDB data (download with: python -m scripts.download_imdb)
+data/

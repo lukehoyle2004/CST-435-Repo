@@ -6,3 +6,5 @@
 pytest==8.3.3
 httpx==0.27.2
 PyYAML==6.0.2
+# Reads the IMDB parquet files for offline training (not needed by either cloud tier).
+pyarrow==17.0.0
