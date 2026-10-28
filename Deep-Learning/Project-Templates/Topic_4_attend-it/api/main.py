@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import db
 from seqsight import MODELS_DIR
-from seqsight.inference import classify_tokens, load_vocab, sha256_hex, top_tokens
+from seqsight.inference import classify_tokens, guardrails, load_vocab, sha256_hex, top_tokens
 from seqsight.model import MODEL_KINDS, count_parameters, load_exported
 from shared.imdb import CLASS_NAMES
 from shared.schemas import PredictExampleRequest, PredictRequest, PredictResponse
@@ -99,6 +99,7 @@ def serve(kind: str, tokens: list[str], raw_tokens: int | None, digest: str,
         res = classify_tokens(net, STATE["vocab"], tokens, raw_tokens)
     except ValueError as exc:
         raise HTTPException(422, str(exc))
+    guard = guardrails(res)
     latency_ms = round((time.perf_counter() - start) * 1000, 2)
     source = "user" if test_index is None else "imdb_test"
 
@@ -108,7 +109,8 @@ def serve(kind: str, tokens: list[str], raw_tokens: int | None, digest: str,
             text_sha256=digest, source=source, test_index=test_index,
             n_tokens=res["n_tokens"], raw_tokens=res["raw_tokens"], unk_tokens=res["unk_tokens"],
             predicted_label=res["label"], predicted_class=res["class_name"],
-            confidence=res["confidence"], probabilities=res["probabilities"], model=kind,
+            confidence=res["confidence"], probabilities=res["probabilities"],
+            abstained=guard["abstained"], flags=guard["flags"], model=kind,
             attention=res["attention"], served_by_run_id=config["run_id"], latency_ms=latency_ms,
         ))
         logged = True
@@ -116,7 +118,7 @@ def serve(kind: str, tokens: list[str], raw_tokens: int | None, digest: str,
         log.warning("could not log prediction: %s", exc)
 
     return PredictResponse(
-        **res,
+        **res, **guard,
         top_tokens=top_tokens(res["tokens"], res["attention"]) if res["attention"] else [],
         text_sha256=digest, source=source, test_index=test_index, true_class=true_class,
         model=kind, served_by_run_id=config["run_id"], latency_ms=latency_ms,

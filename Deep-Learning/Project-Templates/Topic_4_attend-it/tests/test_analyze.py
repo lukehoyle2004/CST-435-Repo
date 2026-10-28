@@ -10,8 +10,11 @@ from scripts.analyze import (
     attention_stats,
     expected_calibration_error,
     length_buckets,
+    mcnemar_p,
     most_confident_errors,
     per_class,
+    selective_accuracy,
+    wilson_interval,
 )
 
 
@@ -62,3 +65,24 @@ def test_per_class_precision_recall():
     assert out["negative"] == {"precision": 1.0, "recall": 0.5, "f1": pytest.approx(2 / 3)}
     assert out["positive"]["precision"] == pytest.approx(2 / 3)
     assert not math.isnan(out["positive"]["f1"])
+
+
+def test_wilson_interval_brackets_the_accuracy_and_narrows_with_n():
+    lo, hi = wilson_interval(870, 1000)
+    assert lo < 0.87 < hi and hi - lo == pytest.approx(0.0417, abs=1e-3)
+    lo2, hi2 = wilson_interval(21_913, 25_000)
+    assert hi2 - lo2 < 0.01
+
+
+def test_mcnemar_uses_only_disagreements():
+    assert mcnemar_p(100, 100) == pytest.approx(1.0, abs=0.06)   # balanced -> no evidence
+    assert mcnemar_p(1351, 1099) < 1e-5                           # our two models
+    assert mcnemar_p(0, 0) == 1.0
+
+
+def test_selective_accuracy_trades_coverage_for_accuracy():
+    conf = [0.55, 0.65, 0.95, 0.99]
+    correct = [False, True, True, True]
+    rows = selective_accuracy(conf, correct, thresholds=(0.6, 0.9))
+    assert rows[0] == {"threshold": 0.6, "coverage": 0.75, "acc": 1.0, "abstained_acc": 0.0}
+    assert rows[1]["coverage"] == 0.5 and rows[1]["abstained_acc"] == 0.5

@@ -23,7 +23,7 @@ _client: Optional[Client] = None
 RUN_SUMMARY_COLS = ("run_id,name,display_name,architecture,epochs,batch_size,lr,seed,params,"
                     "best_epoch,val_acc,test_acc,macro_f1,ece,confident_errors,created_at")
 PREDICTION_LIST_COLS = ("id,text_sha256,source,test_index,n_tokens,raw_tokens,unk_tokens,"
-                        "predicted_class,confidence,model,served_by_run_id,latency_ms,created_at,"
+                        "predicted_class,confidence,abstained,flags,model,served_by_run_id,latency_ms,created_at,"
                         "seq_runs(name,display_name)")
 
 

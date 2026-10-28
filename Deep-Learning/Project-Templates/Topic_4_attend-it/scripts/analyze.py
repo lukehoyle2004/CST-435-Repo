@@ -32,6 +32,7 @@ from shared.text import MAX_LEN, Vocab, tokenize
 # Raw token counts (before truncation to MAX_LEN) for the length analysis.
 LENGTH_EDGES = (100, 200, MAX_LEN)
 CONFIDENT = 0.9
+SELECTIVE = (0.6, 0.7, 0.75, 0.8, 0.9)
 DISPLAY = {
     "lstm": ("LSTM (final hidden state)",
              "Embedding(128) -> LSTM(128), packed -> last hidden state -> Linear(2)"),
@@ -80,6 +81,35 @@ def attention_stats(weights: Sequence[Sequence[float]]) -> Dict[str, float]:
         peak.append(float(w.max() * len(w)))
     return {"mean_normalized_entropy": float(np.mean(ent)),
             "median_peak_ratio": float(np.median(peak))}
+
+
+def wilson_interval(k: int, n: int, z: float = 1.96) -> List[float]:
+    """95% Wilson score interval for an accuracy of k correct out of n."""
+    p = k / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return [centre - half, centre + half]
+
+
+def mcnemar_p(only_a: int, only_b: int) -> float:
+    """Two-sided McNemar test (continuity-corrected chi-square, 1 dof) on the discordant pairs."""
+    if only_a + only_b == 0:
+        return 1.0
+    chi2 = (abs(only_a - only_b) - 1) ** 2 / (only_a + only_b)
+    return math.erfc(math.sqrt(chi2 / 2))
+
+
+def selective_accuracy(conf: Sequence[float], correct: Sequence[bool],
+                       thresholds: Sequence[float] = SELECTIVE) -> List[Dict]:
+    """Coverage and accuracy when the model only answers at confidence >= t (else abstains)."""
+    conf, correct = np.asarray(conf), np.asarray(correct, dtype=bool)
+    rows = []
+    for t in thresholds:
+        sel = conf >= t
+        rows.append({"threshold": t, "coverage": float(sel.mean()),
+                     "acc": float(correct[sel].mean()) if sel.any() else None,
+                     "abstained_acc": float(correct[~sel].mean()) if (~sel).any() else None})
+    return rows
 
 
 def most_confident_errors(conf: Sequence[float], correct: Sequence[bool], k: int) -> List[int]:
@@ -136,11 +166,13 @@ def main() -> None:
                                    "train_reviews", "val_reviews", "test_reviews", "hardware",
                                    "train_seconds", "best_epoch", "val_acc", "vocab_sha256")},
             "test_acc": float(correct.mean()),
+            "test_acc_ci95": wilson_interval(int(correct.sum()), len(correct)),
             "macro_f1": macro_f1(y, pred),
             "per_class": per_class(y, pred),
             "ece": expected_calibration_error(conf, correct),
             "confident_errors": int(((conf >= CONFIDENT) & ~correct).sum()),
             "confident_error_rate": float(((conf >= CONFIDENT) & ~correct).sum() / max((~correct).sum(), 1)),
+            "selective": selective_accuracy(conf, correct),
             "length_buckets": length_buckets(raw_lengths, correct),
             "history": cfg["history"],
         }
@@ -155,6 +187,7 @@ def main() -> None:
         "only_lstm_right": int((a["correct"] & ~b["correct"]).sum()),
         "both_wrong": int((~a["correct"] & ~b["correct"]).sum()),
     }
+    agreement["mcnemar_p"] = mcnemar_p(agreement["only_attention_right"], agreement["only_lstm_right"])
     for r in runs:
         r["agreement"] = agreement
 
@@ -195,6 +228,10 @@ def main() -> None:
             print(f"   {bkt['bucket']:>18}: n={bkt['n']:>5} acc={bkt['acc']:.4f}")
         if "attention_stats" in r:
             print(f"   attention: {r['attention_stats']}")
+        print(f"   95% CI: {r['test_acc_ci95']}")
+        for s in r["selective"]:
+            print(f"   answer if conf >= {s['threshold']}: coverage={s['coverage']:.3f} acc={s['acc']:.4f} "
+                  f"abstained acc={s['abstained_acc']}")
     print(f"\nagreement: {agreement}")
     print("\nFailure Gallery (attention model's most confident mistakes):")
     for f in gallery["failures"][:6]:

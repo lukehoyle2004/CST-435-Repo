@@ -44,6 +44,10 @@ class PredictResponse(BaseModel):
     attention: Optional[List[float]] = Field(
         None, description="One weight per token, summing to 1 (attention model only).")
     top_tokens: List[TopToken] = Field(default_factory=list)
+    verdict: str = Field(..., description="class_name, or 'uncertain' when a guardrail abstains.")
+    abstained: bool = Field(..., description="True when the model is outside its comfort zone.")
+    flags: List[str] = Field(default_factory=list, description="Guardrail codes that fired.")
+    flag_messages: List[str] = Field(default_factory=list, description="The same, in words.")
     n_tokens: int
     raw_tokens: int
     truncated: bool

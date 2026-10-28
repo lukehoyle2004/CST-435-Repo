@@ -1,0 +1,360 @@
+{
+ "vocab_sha256": "a269c736fbb7269865bb42f44bb6281fc0dead2ad1f4da0249e3a4384195b6aa",
+ "cases": [
+  {
+   "text": "An absolutely wonderful film. The acting was superb and I loved every minute!",
+   "lstm": {
+    "run_id": "b6db1ea6",
+    "class_name": "positive",
+    "probabilities": {
+     "negative": 0.007358207833021879,
+     "positive": 0.9926417469978333
+    },
+    "tokens": [
+     "an",
+     "absolutely",
+     "wonderful",
+     "film",
+     "the",
+     "acting",
+     "was",
+     "superb",
+     "and",
+     "i",
+     "loved",
+     "every",
+     "minute",
+     "!"
+    ],
+    "attention": null
+   },
+   "attention": {
+    "run_id": "1c74750a",
+    "class_name": "positive",
+    "probabilities": {
+     "negative": 4.8429033228103435e-08,
+     "positive": 1.0
+    },
+    "tokens": [
+     "an",
+     "absolutely",
+     "wonderful",
+     "film",
+     "the",
+     "acting",
+     "was",
+     "superb",
+     "and",
+     "i",
+     "loved",
+     "every",
+     "minute",
+     "!"
+    ],
+    "attention": [
+     0.031141,
+     0.085047,
+     0.121165,
+     0.140699,
+     0.061907,
+     0.058122,
+     0.057186,
+     0.12833,
+     0.056104,
+     0.033298,
+     0.101364,
+     0.052153,
+     0.03649,
+     0.036995
+    ]
+   }
+  },
+  {
+   "text": "Dull, predictable and far too long. I wanted my two hours back.",
+   "lstm": {
+    "run_id": "b6db1ea6",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.9965229034423828,
+     "positive": 0.003477097023278475
+    },
+    "tokens": [
+     "dull",
+     "predictable",
+     "and",
+     "far",
+     "too",
+     "long",
+     "i",
+     "wanted",
+     "my",
+     "two",
+     "hours",
+     "back"
+    ],
+    "attention": null
+   },
+   "attention": {
+    "run_id": "1c74750a",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 1.0,
+     "positive": 2.2892305828747794e-09
+    },
+    "tokens": [
+     "dull",
+     "predictable",
+     "and",
+     "far",
+     "too",
+     "long",
+     "i",
+     "wanted",
+     "my",
+     "two",
+     "hours",
+     "back"
+    ],
+    "attention": [
+     0.165244,
+     0.149912,
+     0.096455,
+     0.127049,
+     0.127818,
+     0.074745,
+     0.060263,
+     0.066459,
+     0.040645,
+     0.032641,
+     0.031714,
+     0.027055
+    ]
+   }
+  },
+  {
+   "text": "I expected a dull remake, but the performances are wonderful and the last twenty minutes had me on the edge of my seat. Not perfect, the middle drags, but well worth it.",
+   "lstm": {
+    "run_id": "b6db1ea6",
+    "class_name": "positive",
+    "probabilities": {
+     "negative": 0.2147851288318634,
+     "positive": 0.785214900970459
+    },
+    "tokens": [
+     "i",
+     "expected",
+     "a",
+     "dull",
+     "remake",
+     "but",
+     "the",
+     "performances",
+     "are",
+     "wonderful",
+     "and",
+     "the",
+     "last",
+     "twenty",
+     "minutes",
+     "had",
+     "me",
+     "on",
+     "the",
+     "edge",
+     "of",
+     "my",
+     "seat",
+     "not",
+     "perfect",
+     "the",
+     "middle",
+     "drags",
+     "but",
+     "well",
+     "worth",
+     "it"
+    ],
+    "attention": null
+   },
+   "attention": {
+    "run_id": "1c74750a",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.654066801071167,
+     "positive": 0.3459332287311554
+    },
+    "tokens": [
+     "i",
+     "expected",
+     "a",
+     "dull",
+     "remake",
+     "but",
+     "the",
+     "performances",
+     "are",
+     "wonderful",
+     "and",
+     "the",
+     "last",
+     "twenty",
+     "minutes",
+     "had",
+     "me",
+     "on",
+     "the",
+     "edge",
+     "of",
+     "my",
+     "seat",
+     "not",
+     "perfect",
+     "the",
+     "middle",
+     "drags",
+     "but",
+     "well",
+     "worth",
+     "it"
+    ],
+    "attention": [
+     0.022299,
+     0.028223,
+     0.028603,
+     0.146497,
+     0.060618,
+     0.031181,
+     0.022826,
+     0.024074,
+     0.02693,
+     0.072558,
+     0.032979,
+     0.023649,
+     0.01844,
+     0.016236,
+     0.019965,
+     0.013538,
+     0.017041,
+     0.017352,
+     0.011127,
+     0.018686,
+     0.021932,
+     0.020498,
+     0.026879,
+     0.012926,
+     0.03594,
+     0.017241,
+     0.020393,
+     0.040302,
+     0.02642,
+     0.024288,
+     0.053849,
+     0.04651
+    ]
+   }
+  },
+  {
+   "text": "Not the best, not the worst.",
+   "lstm": {
+    "run_id": "b6db1ea6",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.9416497945785522,
+     "positive": 0.05835025757551193
+    },
+    "tokens": [
+     "not",
+     "the",
+     "best",
+     "not",
+     "the",
+     "worst"
+    ],
+    "attention": null
+   },
+   "attention": {
+    "run_id": "1c74750a",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.9999010562896729,
+     "positive": 9.897173731587827e-05
+    },
+    "tokens": [
+     "not",
+     "the",
+     "best",
+     "not",
+     "the",
+     "worst"
+    ],
+    "attention": [
+     0.102319,
+     0.078764,
+     0.236792,
+     0.087693,
+     0.068908,
+     0.425523
+    ]
+   }
+  },
+  {
+   "text": "This is the worst movie I have ever seen. Don't bother.",
+   "lstm": {
+    "run_id": "b6db1ea6",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.9969176054000854,
+     "positive": 0.003082386450842023
+    },
+    "tokens": [
+     "this",
+     "is",
+     "the",
+     "worst",
+     "movie",
+     "i",
+     "have",
+     "ever",
+     "seen",
+     "don't",
+     "bother"
+    ],
+    "attention": null
+   },
+   "attention": {
+    "run_id": "1c74750a",
+    "class_name": "negative",
+    "probabilities": {
+     "negative": 0.9999998807907104,
+     "positive": 1.7033546839684277e-07
+    },
+    "tokens": [
+     "this",
+     "is",
+     "the",
+     "worst",
+     "movie",
+     "i",
+     "have",
+     "ever",
+     "seen",
+     "don't",
+     "bother"
+    ],
+    "attention": [
+     0.043418,
+     0.028851,
+     0.057055,
+     0.18553,
+     0.125087,
+     0.105662,
+     0.096989,
+     0.110326,
+     0.099102,
+     0.062615,
+     0.085366
+    ]
+   }
+  }
+ ]
+}

@@ -39,15 +39,17 @@ create table seq_runs (
     val_acc              double precision not null,     -- fraction, at best_epoch
     vocab_sha256         text not null,
     test_acc             double precision not null,     -- fraction, all 25k test reviews
+    test_acc_ci95        jsonb not null,                -- [low, high] Wilson 95% interval
     macro_f1             double precision not null,
     per_class            jsonb not null,                -- {class: {precision, recall, f1}}
     ece                  double precision not null,     -- expected calibration error
     confident_errors     integer not null,              -- wrong with confidence >= 0.9
     confident_error_rate double precision not null,     -- share of all errors
+    selective            jsonb not null,                -- coverage/accuracy if it abstains below a confidence
     length_buckets       jsonb not null,                -- [{bucket, n, acc}] by raw length
     history              jsonb not null,                -- per-epoch train/val loss, val acc
     attention_stats      jsonb,                         -- attention run only
-    agreement            jsonb not null,                -- both right / only one right / both wrong
+    agreement            jsonb not null,                -- both right / only one right / both wrong + McNemar p
     created_at           timestamptz not null default now()
 );
 
@@ -67,6 +69,8 @@ create table seq_predictions (
     predicted_class   text not null,
     confidence        double precision not null check (confidence between 0 and 1),
     probabilities     jsonb not null,                -- {negative: p, positive: p}
+    abstained         boolean not null default false,  -- guardrail: too uncertain to call
+    flags             jsonb not null default '[]',     -- guardrail codes, e.g. ["low_confidence"]
     model             text not null check (model in ('lstm', 'attention')),
     attention         jsonb check (attention is null or jsonb_typeof(attention) = 'array'),
     served_by_run_id  text not null references seq_runs (run_id) on delete cascade,

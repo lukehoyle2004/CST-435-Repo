@@ -53,7 +53,7 @@ def wake_api() -> bool:
     if st.session_state.get("api_awake"):
         return True
     with st.status("Waking the model service on Render (free-tier cold start, up to a minute). "
-                   "The Compare Models and Recent Predictions tabs already work: they read Supabase.",
+                   "The Baseline vs. Attention and Recent Predictions tabs already work: they read Supabase.",
                    expanded=False) as status:
         for _ in range(12):
             try:
@@ -126,11 +126,18 @@ def prob_bar(probs: dict):
 
 def show_prediction(res: dict):
     """One /predict response: verdict, probabilities, attention heatmap, provenance."""
-    head = f"{EMOJI[res['class_name']]} **{res['class_name']}** · {res['confidence']:.1%} confident"
+    if res["abstained"]:
+        head = (f"🤔 **uncertain** · the model leans {res['class_name']} at {res['confidence']:.1%}, "
+                "too unsure to call")
+    else:
+        head = f"{EMOJI[res['class_name']]} **{res['class_name']}** · {res['confidence']:.1%} confident"
     if res.get("true_class"):
         mark = "✅" if res["true_class"] == res["class_name"] else "❌"
         head += f" · {mark} true label: {res['true_class']}"
     st.markdown(f"#### {MODEL_LABELS[res['model']]}\n{head}")
+    if res["abstained"]:
+        st.warning("Guardrail: " + "; ".join(res["flag_messages"]) + ". Treat this review as "
+                   "unclassified (the IMDB base rate is 50/50) rather than acting on the lean.")
     prob_bar(res["probabilities"])
     if res["attention"]:
         heatmap(res["tokens"], res["attention"], res["unk"])
@@ -175,9 +182,9 @@ st.caption("Type a movie review; two matched LSTMs trained on 25,000 IMDB review
            "your text and the attention numbers are logged, never the text.")
 banner = st.container()
 
-tab_concepts, tab_try, tab_examples, tab_compare, tab_recent, tab_card = st.tabs(
-    ["📐 Concepts", "✍️ Try It", "🧪 Examples & Failure Gallery", "⚖️ Compare Models",
-     "🕒 Recent Predictions", "🪪 Model Card"])
+tab_concepts, tab_try, tab_compare, tab_recent, tab_failures, tab_card = st.tabs(
+    ["📐 Concepts", "✍️ Try It", "⚖️ Baseline vs. Attention", "🕒 Recent Predictions",
+     "❌ Failure Gallery", "🪪 Model Card"])
 
 # The database-backed tabs render first, so they work while Render is still waking up.
 
@@ -265,6 +272,14 @@ with tab_compare:
             "confident errors": r["confident_errors"],
             "train time (min)": round(r["train_seconds"] / 60, 1) if r.get("train_seconds") else None,
         } for r in (l, a)]), hide_index=True, use_container_width=True)
+        if a.get("test_acc_ci95") and "mcnemar_p" in a["agreement"]:
+            st.caption(
+                f"95% intervals on 25,000 reviews: attention {100 * a['test_acc_ci95'][0]:.2f}–"
+                f"{100 * a['test_acc_ci95'][1]:.2f}%, plain LSTM {100 * l['test_acc_ci95'][0]:.2f}–"
+                f"{100 * l['test_acc_ci95'][1]:.2f}%. On the same reviews the models disagree "
+                f"{a['agreement']['only_attention_right'] + a['agreement']['only_lstm_right']:,} times; "
+                f"McNemar's test on those gives p = {a['agreement']['mcnemar_p']:.1e}, so the gap is not "
+                "chance on this test set (one seed per model, so not a claim about every seed).")
 
         st.subheader("Accuracy by review length")
         st.caption("Reviews longer than 256 tokens are cut to their first 256. The plain LSTM must "
@@ -316,6 +331,21 @@ with tab_compare:
             st.caption(f"Attention shape over the test set: mean normalized entropy "
                        f"{s['mean_normalized_entropy']:.3f} (1 = uniform), median peak ratio "
                        f"{s['median_peak_ratio']:.2f}× uniform weight on the top token.")
+
+        if a.get("selective"):
+            st.subheader("Guardrail: answer only when confident")
+            st.caption("If the service abstains below a confidence threshold (and says \"uncertain\" "
+                       "instead), the answers it does give are far more reliable. The API abstains "
+                       "below 75%.")
+            sel = pd.DataFrame([dict(model=r["name"], **s) for r in (l, a) for s in r["selective"]])
+            st.dataframe(sel.assign(
+                threshold=sel.threshold.map("≥ {:.0%}".format),
+                coverage=sel.coverage.map("{:.1%}".format),
+                acc=sel.acc.map("{:.2%}".format),
+                abstained_acc=sel.abstained_acc.map(lambda v: f"{v:.1%}" if v is not None else "—"),
+            ).rename(columns={"threshold": "answers when confidence", "coverage": "reviews answered",
+                              "acc": "accuracy on answered", "abstained_acc": "accuracy it would have had on the rest"}),
+                hide_index=True, use_container_width=True)
     else:
         st.info("Run rows not found in Supabase yet (apply db/migrations/001_init.sql and run "
                 "`python -m db.seed_runs`).")
@@ -330,7 +360,7 @@ with tab_recent:
     try:
         rows = (supabase_anon().table("seq_predictions")
                 .select("id,created_at,text_sha256,source,test_index,n_tokens,raw_tokens,unk_tokens,"
-                        "predicted_class,confidence,model,served_by_run_id,latency_ms,"
+                        "predicted_class,confidence,abstained,model,served_by_run_id,latency_ms,"
                         "seq_runs(name,display_name)")
                 .order("created_at", desc=True).limit(500).execute().data)
     except Exception as exc:
@@ -341,7 +371,8 @@ with tab_recent:
     elif rows:
         df = pd.DataFrame([{
             "id": r["id"], "time (UTC)": pd.to_datetime(r["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
-            "predicted": r["predicted_class"], "confidence": r["confidence"], "model": r["model"],
+            "predicted": r["predicted_class"], "confidence": r["confidence"],
+            "guardrail": "uncertain" if r.get("abstained") else "", "model": r["model"],
             "source": r["source"] if r["source"] == "user" else f"IMDB test #{r['test_index']}",
             "tokens": r["n_tokens"], "truncated": r["raw_tokens"] > r["n_tokens"],
             "unknown words": r["unk_tokens"], "run_id": r["served_by_run_id"],
@@ -436,21 +467,24 @@ with tab_try:
             with col:
                 show_prediction(res)
 
-# --------------------------------------------------------------------------- Examples & Failure Gallery
-with tab_examples:
-    gallery = None
-    if api_ok:
-        try:
-            gallery = load_gallery()
-        except requests.RequestException as exc:
-            st.error(f"Could not load the gallery: {error_text(exc)}")
+# --------------------------------------------------------------------------- gallery-backed sections
+gallery = None
+if api_ok:
+    try:
+        gallery = load_gallery()
+    except requests.RequestException as exc:
+        st.error(f"Could not load the IMDB examples: {error_text(exc)}")
+WAKING = "These examples come from the model service, which is still waking up. Refresh in a minute."
+
+with tab_try:
+    st.divider()
+    st.subheader("Or try a held-out IMDB review")
     if gallery:
-        st.subheader("Try a held-out IMDB review")
         st.caption("Short reviews from the IMDB **test** set (never seen in training) that the attention "
                    "model gets right with ≥90% confidence. Running one sends it through the live API and "
                    "logs the prediction and its attention vector to Supabase.")
         ex = gallery["examples"]
-        idx = st.radio("Example", range(len(ex)), horizontal=False,
+        idx = st.radio("Example", range(len(ex)),
                        format_func=lambda i: f"[{ex[i]['true']}] {snippet(ex[i])}")
         c1, c2 = st.columns([1, 4])
         live_both = c2.checkbox("Also run the plain LSTM", value=True)
@@ -468,17 +502,14 @@ with tab_examples:
                     show_prediction(res)
         else:
             show_card(ex[idx])
+    else:
+        st.info(WAKING)
 
-        st.subheader("Failure Gallery: confidently wrong")
-        st.caption("The attention model's most confident mistakes on the 25,000 test reviews. Typical "
-                   "causes: sarcasm or \"so bad it's good\" praise built from negative words, reviews whose "
-                   "label looks wrong, and unusual word use. A confident score is not a correct one.")
-        for card in gallery["failures"]:
-            with st.expander(f"❌ said {card['attention_pred']} at {card['attention_confidence']:.1%} · "
-                             f"true {card['true']} · {snippet(card)}"):
-                show_card(card)
-
-        st.subheader("Where only one model was right")
+with tab_compare:
+    st.subheader("Reviews only one model got right")
+    if gallery:
+        st.caption("The shortest test reviews where the two matched models disagree and exactly one is "
+                   "right, with the attention model's weights.")
         c1, c2 = st.columns(2)
         for col, key, title in ((c1, "attention_wins", "Attention right, plain LSTM wrong"),
                                 (c2, "lstm_wins", "Plain LSTM right, attention wrong")):
@@ -487,5 +518,31 @@ with tab_examples:
                 for card in gallery[key]:
                     with st.expander(snippet(card, 8)):
                         show_card(card)
-    elif not api_ok:
-        st.info("The examples come from the model service, which is still waking up. Refresh in a minute.")
+    else:
+        st.info(WAKING)
+
+# --------------------------------------------------------------------------- Failure Gallery
+with tab_failures:
+    st.header("Where the attention model is confidently wrong")
+    st.markdown(
+        "These are the attention model's most confident mistakes among all 25,000 test reviews, each "
+        "with the weights it used. Three patterns recur:\n"
+        "- **Sarcasm and \"so bad it's good\" praise.** A positive review built from words like "
+        "*badly*, *poorly*, *awful*, or a negative one dressed up as *masterpiece … 10/10*. The "
+        "attention query scores each word by its **content**; whether the word is meant ironically "
+        "can only come from the LSTM state at that position, and a 128-number state rarely carries it.\n"
+        "- **Labels that look wrong.** Some reviews read as glowing but are labeled negative (or the "
+        "reverse). IMDB labels come from the star rating, and reviewers do not always write what they rate.\n"
+        "- **Unusual word use.** e.g. *primary* used to mean *primitive*: the model only knows how a "
+        "word was used in its 22,500 training reviews.\n\n"
+        "**Why so confident?** The pooled vector is a weighted average of states, so a few strong "
+        "sentiment words can dominate it and push the logit far from zero. Softmax confidence measures "
+        "how far, not whether the reading is right; that is why the API abstains below 75% and why "
+        "even 100% answers here are wrong.")
+    if gallery:
+        for card in gallery["failures"]:
+            with st.expander(f"❌ said {card['attention_pred']} at {card['attention_confidence']:.1%} · "
+                             f"true {card['true']} · {snippet(card)}"):
+                show_card(card)
+    else:
+        st.info(WAKING)

@@ -79,6 +79,11 @@ def app(client, monkeypatch):
     yield new_app(), client.store
 
 
+def test_app_script_compiles():
+    # AppTest renders an empty page (with no exception) for a syntax error, so check it directly.
+    compile((ROOT / "ui" / "app.py").read_text(encoding="utf-8"), "app.py", "exec")
+
+
 def new_app() -> AppTest:
     st.cache_data.clear()
     st.cache_resource.clear()
@@ -102,8 +107,12 @@ def test_every_tab_renders(app):
     assert "Worked example" in heads and "13.54" in text                 # Concepts
     assert "Matched runs" in heads and "Accuracy by review length" in heads   # Compare, from seq_runs
     assert "No predictions yet" in text                                  # Recent tab, empty
-    assert "Failure Gallery: confidently wrong" in heads
+    assert "Reviews only one model got right" in heads                   # Baseline vs. Attention
+    assert "Guardrail: answer only when confident" in heads
+    assert "Where the attention model is confidently wrong" in [h.value for h in at.header]
     assert len(at.expander) >= 12 + 8                                    # failures + one-model wins
+    assert [t.label for t in at.tabs] == ["📐 Concepts", "✍️ Try It", "⚖️ Baseline vs. Attention",
+                                          "🕒 Recent Predictions", "❌ Failure Gallery", "🪪 Model Card"]
 
 
 def test_try_it_logs_and_shows_attention_then_recent_drilldown(app):
@@ -159,4 +168,4 @@ def test_cold_start_and_outage_degrade_gracefully(monkeypatch):
     assert "Supabase is unreachable" in text
     assert "Could not read runs from Supabase" in text
     assert "model service is unavailable" in text
-    assert "still waking up" in text                                     # Examples tab
+    assert "still waking up" in text                                     # gallery-backed sections

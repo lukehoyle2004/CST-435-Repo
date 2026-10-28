@@ -140,3 +140,32 @@ def test_db_endpoints_return_503_when_supabase_is_down(outage_client, path):
 def test_healthz_reports_db_down_but_stays_up(outage_client):
     body = outage_client.get("/healthz").json()
     assert body["status"] == "ok" and body["db"] is False
+
+
+# ------------------------------------------------------------------ guardrails
+def test_confident_long_review_passes_the_guardrails(client):
+    body = predict(client).json()
+    assert body["confidence"] >= 0.75
+    assert body["abstained"] is False and body["verdict"] == body["class_name"] and body["flags"] == []
+
+
+@pytest.mark.parametrize("text,flag", [
+    ("good bad", "too_short"),
+    ("zzqxv qqwvx vvbnx wonderful film", "many_unknown_words"),
+])
+def test_guardrails_abstain_and_are_logged(client, text, flag):
+    body = predict(client, text=text).json()
+    assert flag in body["flags"] and body["abstained"] is True and body["verdict"] == "uncertain"
+    assert body["class_name"] in CLASS_NAMES          # the raw answer is still shown
+    assert len(body["flag_messages"]) == len(body["flags"])
+    row = client.store.predictions[-1]
+    assert row["abstained"] is True and flag in row["flags"]
+
+
+def test_low_confidence_abstains_but_truncation_alone_does_not():
+    from seqsight.inference import guardrails
+    base = dict(class_name="positive", confidence=0.9, n_tokens=256, unk_tokens=0, truncated=True)
+    assert guardrails(base) == {"flags": ["truncated"], "flag_messages": ["only the first 256 tokens were read"],
+                                "abstained": False, "verdict": "positive"}
+    g = guardrails({**base, "confidence": 0.6, "truncated": False})
+    assert g["flags"] == ["low_confidence"] and g["verdict"] == "uncertain"

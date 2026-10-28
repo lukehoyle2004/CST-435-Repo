@@ -60,6 +60,39 @@ def classify_text(model: nn.Module, vocab: Vocab, text: str) -> Dict:
     return classify_tokens(model, vocab, tokenize(text))
 
 
+# ----------------------------------------------------------------------------- guardrails
+# A sentiment score is only worth acting on when the model is in familiar
+# territory. Below these limits the API still returns the model's answer (for
+# transparency) but marks the prediction as abstained and the verdict falls back
+# to the base rate: IMDB is 50/50, so "uncertain" rather than a coin-flip label.
+LOW_CONFIDENCE = 0.75   # test set: answering only at >= 0.75 is far more accurate (models/runs.json "selective")
+MIN_TOKENS = 5          # too short to carry much sentiment signal
+MAX_UNK_SHARE = 0.2     # over a fifth of the words were never seen in training
+FLAG_TEXT = {
+    "low_confidence": f"confidence below {LOW_CONFIDENCE:.0%}",
+    "too_short": f"fewer than {MIN_TOKENS} words",
+    "many_unknown_words": f"more than {MAX_UNK_SHARE:.0%} of words are outside the vocabulary",
+    "truncated": "only the first 256 tokens were read",
+}
+ABSTAIN_FLAGS = {"low_confidence", "too_short", "many_unknown_words"}
+
+
+def guardrails(res: Dict) -> Dict:
+    """Flags for a classify_tokens result, whether to abstain, and the verdict to show."""
+    flags = []
+    if res["confidence"] < LOW_CONFIDENCE:
+        flags.append("low_confidence")
+    if res["n_tokens"] < MIN_TOKENS:
+        flags.append("too_short")
+    if res["unk_tokens"] > MAX_UNK_SHARE * res["n_tokens"]:
+        flags.append("many_unknown_words")
+    if res["truncated"]:
+        flags.append("truncated")
+    abstained = bool(ABSTAIN_FLAGS.intersection(flags))
+    return {"flags": flags, "flag_messages": [FLAG_TEXT[f] for f in flags], "abstained": abstained,
+            "verdict": "uncertain" if abstained else res["class_name"]}
+
+
 def top_tokens(tokens: Sequence[str], attention: Sequence[float], k: int = 5) -> List[Dict]:
     """The k most-attended tokens, highest first (ties keep reading order)."""
     order = sorted(range(len(tokens)), key=lambda i: -attention[i])[:k]
