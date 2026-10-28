@@ -1,0 +1,80 @@
+{
+  "kind": "attention",
+  "vocab_size": 20000,
+  "embed_dim": 128,
+  "hidden_dim": 128,
+  "attn_dim": 64,
+  "bidirectional": false,
+  "dropout": 0.3,
+  "run_id": "1c74750a",
+  "classes": [
+    "negative",
+    "positive"
+  ],
+  "max_len": 256,
+  "max_vocab": 20000,
+  "min_freq": 2,
+  "vocab_sha256": "a269c736fbb7269865bb42f44bb6281fc0dead2ad1f4da0249e3a4384195b6aa",
+  "epochs": 6,
+  "batch_size": 64,
+  "lr": 0.002,
+  "optimizer": "adam",
+  "grad_clip": 1.0,
+  "seed": 0,
+  "train_reviews": 22500,
+  "val_reviews": 2500,
+  "test_reviews": 25000,
+  "params": 2700674,
+  "threads": 6,
+  "hardware": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel (6 threads)",
+  "train_seconds": 6446.1623005867,
+  "best_epoch": 4,
+  "val_acc": 0.8988,
+  "test_acc": 0.87652,
+  "test_loss": 0.3222973346710205,
+  "macro_f1": 0.8763911998279948,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.47534660154978436,
+      "val_loss": 0.33369889855384827,
+      "val_acc": 0.8632,
+      "seconds": 1003.5954747200012
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.28532938553492226,
+      "val_loss": 0.2760552167892456,
+      "val_acc": 0.8888,
+      "seconds": 1099.0362799167633
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.21299364805221557,
+      "val_loss": 0.27603062987327576,
+      "val_acc": 0.8948,
+      "seconds": 1108.8151769638062
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.1668056594716178,
+      "val_loss": 0.27121269702911377,
+      "val_acc": 0.8988,
+      "seconds": 1135.3259329795837
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.12600097925398085,
+      "val_loss": 0.3128814101219177,
+      "val_acc": 0.8972,
+      "seconds": 1108.1155591011047
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.09560356699890561,
+      "val_loss": 0.35953107476234436,
+      "val_acc": 0.8924,
+      "seconds": 989.5302519798279
+    }
+  ]
+}
