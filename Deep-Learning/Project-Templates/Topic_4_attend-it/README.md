@@ -2,9 +2,9 @@
 
 | | Link |
 |---|---|
-| **Streamlit UI** | _add after deploying (Streamlit Community Cloud)_ |
-| **Render API** (docs at `/docs`) | _add after deploying (expected `https://seq-sight-api.onrender.com`)_ |
-| **Supabase (Postgres)** | _add the project URL after applying the migration_ |
+| **Streamlit UI** | https://seq-sight-luke.streamlit.app |
+| **Render API** (docs at `/docs`) | https://seq-sight-api-lp8s.onrender.com |
+| **Supabase (Postgres)** | https://owovmircxxpypggamqsy.supabase.co (project `see-seq`, ref `owovmircxxpypggamqsy`) |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_4_attend-it |
 | **Video walkthrough (Luke Hoyle)** | _add link_ |
 | **Engineering report** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md): attention derivation, matched comparison, interpretation, ethics |
@@ -256,6 +256,6 @@ CI: `.github/workflows/seq-sight-tests.yml` on every push that touches this fold
 - [x] FastAPI `/predict` with attention, guardrails and hash-only logging
 - [x] Six Streamlit tabs, including the Recent Predictions drilldown heatmap
 - [x] pytest suite (input length, attention shape, regression, Supabase round trip, outage, UI) and CI
-- [ ] Deploy Supabase, Render and Streamlit Community Cloud; add the URLs above
+- [x] Deploy Supabase, Render and Streamlit Community Cloud; add the URLs above
 - [x] README, model card, dataset card, privacy statement, engineering report
 - [ ] Record the video walkthrough
