@@ -1,51 +1,76 @@
-"""FastAPI model service -- Cloud #2 (deployed on Render.com).
+"""FastAPI model service -- Cloud #2 (Render.com).
 
-Responsibilities:
-  * expose the attention classifier behind HTTP so the Streamlit UI can call it
-    over HTTPS,
-  * read dataset parameters from Supabase before training,
-  * write run rows, model artifacts, and sequence metadata (hash only) back.
+Hosts both trained IMDB sentiment models (plain LSTM and LSTM + attention), the
+tokenizer + vocab they were trained with, and the attention read-out. Logs every
+prediction to Supabase as a hash + token counts + answer + attention vector --
+never the review text. No UI code lives here.
 
-There is NO UI code here and NO business logic in the UI -- separation of
-concerns across the three clouds. This is "Attend-It": sequence classification
-with an LSTM + additive (Bahdanau) attention that returns per-timestep
-attention weights so a client can see *which token* the model relied on.
+    uvicorn api.main:app --reload --port 8000      # then open /docs
 """
 from __future__ import annotations
 
-import hashlib
 import json
+import logging
 import os
-import subprocess
+import time
+from contextlib import asynccontextmanager
 
 import torch
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import db
-from api.training import predict_seq, train_attention
-from shared.data import CLASS_NAMES, N_CLASSES, VOCAB_SIZE, generate_one
-from shared.schemas import (
-    ClassesResponse,
-    ClassMetrics,
-    Dataset,
-    DatasetCreate,
-    Health,
-    PredictRequest,
-    PredictResponse,
-    PredictSampleRequest,
-    Run,
-    TrainRequest,
-    TrainResponse,
-    Version,
-)
+from seqsight import MODELS_DIR
+from seqsight.inference import classify_tokens, load_vocab, sha256_hex, top_tokens
+from seqsight.model import MODEL_KINDS, count_parameters, load_exported
+from shared.imdb import CLASS_NAMES
+from shared.schemas import PredictExampleRequest, PredictRequest, PredictResponse
+from shared.text import tokenize
+
+log = logging.getLogger("seqsight")
+
+# Render's free tier is a fraction of one CPU; more threads only contend.
+torch.set_num_threads(int(os.environ.get("TORCH_NUM_THREADS", "1")))
+
+MODELS: dict[str, tuple] = {}     # kind -> (model, config)
+STATE: dict = {}                  # vocab, gallery, gallery_index
+
+
+def load_models() -> None:
+    if "vocab" not in STATE:
+        STATE["vocab"] = load_vocab()
+        gallery = json.loads((MODELS_DIR / "gallery.json").read_text())
+        STATE["gallery"] = gallery
+        STATE["gallery_index"] = {c["test_index"]: c for cards in gallery.values() for c in cards}
+    for kind in MODEL_KINDS:
+        if kind not in MODELS:
+            model, config = load_exported(MODELS_DIR / kind)
+            if config["vocab_sha256"] != STATE["vocab"].sha256():
+                raise RuntimeError(f"{kind} was trained with a different vocab.json")
+            MODELS[kind] = (model, config)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    load_models()   # load once at startup, not on the first request
+    yield
+
+
+TAGS = [
+    {"name": "predict", "description": "Classify a review and return per-token attention."},
+    {"name": "runs", "description": "The two matched training runs persisted in Supabase."},
+    {"name": "predictions", "description": "The anonymized prediction log (hashes + attention, no text)."},
+    {"name": "meta", "description": "Health, version, models and labels."},
+]
 
 app = FastAPI(
-    title="Attend-It API",
-    description="LSTM + attention sequence classifier for the three-cloud stack.",
+    title="Seq-Sight API",
+    description="IMDB sentiment: plain LSTM vs LSTM + scaled-dot-product attention. "
+                "Review text is never stored.",
     version="1.0.0",
+    openapi_tags=TAGS,
+    lifespan=lifespan,
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
@@ -54,180 +79,152 @@ app.add_middleware(
 )
 
 
-def _git_sha() -> str:
-    if os.environ.get("RENDER_GIT_COMMIT"):
-        return os.environ["RENDER_GIT_COMMIT"][:7]
+def get_model(kind: str):
+    load_models()
+    return MODELS[kind]
+
+
+def db_unavailable(exc: Exception) -> HTTPException:
+    log.warning("supabase error: %s", exc)
+    return HTTPException(503, "Database temporarily unavailable. Please retry shortly.")
+
+
+# --------------------------------------------------------------------------- predict
+def serve(kind: str, tokens: list[str], raw_tokens: int | None, digest: str,
+          test_index: int | None = None, true_class: str | None = None) -> PredictResponse:
+    """Classify, log to seq_predictions (best effort), and build the response."""
+    net, config = get_model(kind)
+    start = time.perf_counter()
     try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            .decode()
-            .strip()
-        )
-    except Exception:
-        return "unknown"
+        res = classify_tokens(net, STATE["vocab"], tokens, raw_tokens)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    latency_ms = round((time.perf_counter() - start) * 1000, 2)
+    source = "user" if test_index is None else "imdb_test"
 
+    prediction_id, logged = None, False
+    try:
+        prediction_id = db.log_prediction(dict(
+            text_sha256=digest, source=source, test_index=test_index,
+            n_tokens=res["n_tokens"], raw_tokens=res["raw_tokens"], unk_tokens=res["unk_tokens"],
+            predicted_label=res["label"], predicted_class=res["class_name"],
+            confidence=res["confidence"], probabilities=res["probabilities"], model=kind,
+            attention=res["attention"], served_by_run_id=config["run_id"], latency_ms=latency_ms,
+        ))
+        logged = True
+    except Exception as exc:  # the prediction still goes back to the user
+        log.warning("could not log prediction: %s", exc)
 
-def _project_ref() -> str | None:
-    url = os.environ.get("SUPABASE_URL", "")
-    if url.startswith("https://"):
-        return url.split("//", 1)[1].split(".", 1)[0]
-    return None
-
-
-def _artifact_or_404(run_id: int) -> str:
-    model_b64 = db.get_run_artifact(run_id)
-    if model_b64 is None:
-        raise HTTPException(status_code=404, detail="run_id not found")
-    return model_b64
-
-
-def _seq_sha256(sequence: list[int]) -> str:
-    """Stable hash of the token sequence (no raw tokens are ever stored)."""
-    return hashlib.sha256(json.dumps(sequence).encode()).hexdigest()
-
-
-# ---------------------------------------------------------------------------
-# datasets
-# ---------------------------------------------------------------------------
-@app.post("/datasets", response_model=Dataset, tags=["datasets"])
-def create_dataset(req: DatasetCreate) -> Dataset:
-    """Register a synthetic sequence dataset (parameters only; tokens come from seed)."""
-    row = db.insert_dataset(
-        name=req.name,
-        n_rows=req.n_rows,
-        seq_len=req.seq_len,
-        vocab_size=VOCAB_SIZE,
-        n_classes=N_CLASSES,
-        seed=req.seed,
-    )
-    return Dataset(**{k: row[k] for k in Dataset.model_fields})
-
-
-# ---------------------------------------------------------------------------
-# training
-# ---------------------------------------------------------------------------
-@app.post("/train", response_model=TrainResponse, tags=["training"])
-def train(req: TrainRequest) -> TrainResponse:
-    """Read dataset params from Supabase, train the model, persist run + artifact."""
-    dataset = db.get_dataset(req.dataset_id)
-    if dataset is None:
-        raise HTTPException(status_code=404, detail="dataset_id not found")
-
-    metrics, model_b64, _loss = train_attention(
-        n_rows=dataset["n_rows"],
-        seq_len=dataset["seq_len"],
-        seed=dataset["seed"],
-        lr=req.lr,
-        batch_size=req.batch_size,
-        epochs=req.epochs,
-        test_size=req.test_size,
-    )
-    run = db.insert_run(
-        dataset_id=req.dataset_id,
-        lr=req.lr,
-        batch_size=req.batch_size,
-        epochs=req.epochs,
-        metrics=metrics,
-        model_b64=model_b64,
-    )
-    return TrainResponse(run_id=run["id"], metrics=ClassMetrics(**metrics))
-
-
-@app.get("/runs/{run_id}", response_model=Run, tags=["training"])
-def get_run(run_id: int) -> Run:
-    row = db.get_run(run_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="run_id not found")
-    return Run(**{k: row[k] for k in Run.model_fields})
-
-
-@app.get("/runs", response_model=list[Run], tags=["training"])
-def list_runs() -> list[Run]:
-    rows = db.latest_runs(limit=50)
-    return [Run(**{k: r[k] for k in Run.model_fields}) for r in rows]
-
-
-# ---------------------------------------------------------------------------
-# prediction  (attention explainability)
-# ---------------------------------------------------------------------------
-def _predict_sequence(
-    run_id: int, sequence: list[int], true_class: str | None
-) -> PredictResponse:
-    model_b64 = _artifact_or_404(run_id)
-    result = predict_seq(model_b64, sequence)
-    sha256 = _seq_sha256(sequence)
-    db.insert_sequence_metadata(
-        run_id=run_id,
-        sha256=sha256,
-        length=len(sequence),
-        label=result["label"],
-        class_name=result["class_name"],
-        confidence=result["confidence"],
-    )
     return PredictResponse(
-        run_id=run_id,
-        sequence=sequence,
-        sequence_sha256=sha256,
-        true_class=true_class,
-        **result,
+        **res,
+        top_tokens=top_tokens(res["tokens"], res["attention"]) if res["attention"] else [],
+        text_sha256=digest, source=source, test_index=test_index, true_class=true_class,
+        model=kind, served_by_run_id=config["run_id"], latency_ms=latency_ms,
+        prediction_id=prediction_id, logged=logged,
     )
 
 
-@app.post("/predict", response_model=PredictResponse, tags=["prediction"])
+@app.post("/predict", response_model=PredictResponse, tags=["predict"])
 def predict(req: PredictRequest) -> PredictResponse:
-    """Classify a token sequence and return per-timestep attention weights.
-
-    Only the sequence's sha256 hash + length + prediction are logged -- never
-    the raw tokens.
-    """
-    if any(t < 0 or t >= VOCAB_SIZE for t in req.sequence):
-        raise HTTPException(
-            status_code=422, detail=f"token ids must be in [0, {VOCAB_SIZE})"
-        )
-    return _predict_sequence(req.run_id, req.sequence, true_class=None)
+    """Classify a review. Returns the label, both probabilities, the scored tokens, and
+    (attention model) one weight per token. Logs the text's SHA-256 hash, token counts,
+    the answer and the attention vector -- not the text -- to `seq_predictions`."""
+    return serve(req.model, tokenize(req.text), None, sha256_hex(req.text))
 
 
-@app.post("/predict_sample", response_model=PredictResponse, tags=["prediction"])
-def predict_sample(req: PredictSampleRequest) -> PredictResponse:
-    """Generate a synthetic sequence, classify it, and return attention weights.
-
-    Lets the UI demonstrate the model without the user typing a token sequence.
-    """
-    kind = (
-        req.true_class
-        if (req.true_class is None or req.true_class < N_CLASSES)
-        else None
-    )
-    seq, label, _pos = generate_one(seed=req.seed, kind=kind)
-    return _predict_sequence(
-        req.run_id, [int(t) for t in seq], true_class=CLASS_NAMES[label]
-    )
+@app.post("/predict_example", response_model=PredictResponse, tags=["predict"])
+def predict_example(req: PredictExampleRequest) -> PredictResponse:
+    """Classify one of the public IMDB test reviews in /gallery by its test index."""
+    load_models()
+    card = STATE["gallery_index"].get(req.test_index)
+    if card is None:
+        raise HTTPException(404, f"test review {req.test_index} is not in the gallery")
+    return serve(req.model, card["tokens"], card["raw_length"], sha256_hex(" ".join(card["tokens"])),
+                 test_index=req.test_index, true_class=card["true"])
 
 
-# ---------------------------------------------------------------------------
-# meta
-# ---------------------------------------------------------------------------
-@app.get("/classes", response_model=ClassesResponse, tags=["meta"])
-def classes() -> ClassesResponse:
-    """Return the class labels the model predicts over."""
-    return ClassesResponse(classes=CLASS_NAMES, n_classes=N_CLASSES)
+@app.get("/gallery", tags=["predict"])
+def gallery():
+    """Precomputed IMDB test reviews: clean examples, the Failure Gallery (the attention
+    model's most confident mistakes), and reviews only one of the two models got right."""
+    load_models()
+    return STATE["gallery"]
 
 
-# ---------------------------------------------------------------------------
-# ops
-# ---------------------------------------------------------------------------
-@app.get("/healthz", response_model=Health, tags=["ops"])
-def healthz() -> Health:
-    supabase_ok = db.ping()
-    model_ok = torch.tensor([1.0]).sum().item() == 1.0
-    status = "ok" if (supabase_ok and model_ok) else "degraded"
-    return Health(status=status, model_loader=model_ok, supabase=supabase_ok)
+# --------------------------------------------------------------------------- runs
+@app.get("/runs", tags=["runs"])
+def runs(limit: int = Query(20, ge=1, le=100)):
+    """Training runs from Supabase."""
+    try:
+        return db.list_runs(limit)
+    except Exception as exc:
+        raise db_unavailable(exc)
 
 
-@app.get("/version", response_model=Version, tags=["ops"])
-def version() -> Version:
-    return Version(
-        git_sha=_git_sha(),
-        torch_version=torch.__version__,
-        supabase_project_ref=_project_ref(),
-    )
+@app.get("/runs/{run_id}", tags=["runs"])
+def run_detail(run_id: str):
+    """One run with per-class metrics, length buckets, calibration and training curves."""
+    try:
+        row = db.get_run(run_id)
+    except Exception as exc:
+        raise db_unavailable(exc)
+    if row is None:
+        raise HTTPException(404, f"run {run_id} not found")
+    return row
+
+
+# --------------------------------------------------------------------------- predictions
+@app.get("/predictions", tags=["predictions"])
+def predictions(limit: int = Query(50, ge=1, le=500)):
+    """Recent predictions joined to the run that served them (no attention vectors)."""
+    try:
+        return db.recent_predictions(limit)
+    except Exception as exc:
+        raise db_unavailable(exc)
+
+
+@app.get("/predictions/{prediction_id}", tags=["predictions"])
+def prediction_detail(prediction_id: int):
+    """One prediction with its stored attention vector. Words are shown only for public
+    IMDB test reviews (looked up in the gallery); user text was never stored."""
+    try:
+        row = db.get_prediction(prediction_id)
+    except Exception as exc:
+        raise db_unavailable(exc)
+    if row is None:
+        raise HTTPException(404, f"prediction {prediction_id} not found")
+    load_models()
+    card = STATE["gallery_index"].get(row.get("test_index")) if row["source"] == "imdb_test" else None
+    tokens = card["tokens"] if card else None
+    return {**row, "tokens": tokens,
+            "top_tokens": top_tokens(tokens, row["attention"]) if tokens and row["attention"] else []}
+
+
+# --------------------------------------------------------------------------- meta
+@app.get("/classes", tags=["meta"])
+def classes():
+    return {"classes": CLASS_NAMES}
+
+
+@app.get("/models", tags=["meta"])
+def models():
+    """The served models and the run each one came from."""
+    out = []
+    for kind in MODEL_KINDS:
+        net, config = get_model(kind)
+        out.append(dict(name=kind, run_id=config["run_id"], params=count_parameters(net),
+                        epochs=config["epochs"], best_epoch=config["best_epoch"],
+                        test_acc=config["test_acc"], returns_attention=kind == "attention"))
+    return out
+
+
+@app.get("/healthz", tags=["meta"])
+def healthz():
+    """Always 200 while the process is up; `db` says whether Supabase answered."""
+    return {"status": "ok", "models_loaded": sorted(MODELS), "db": db.ping()}
+
+
+@app.get("/version", tags=["meta"])
+def version():
+    return {"git_sha": os.environ.get("RENDER_GIT_COMMIT", "local")[:7],
+            "torch": torch.__version__, "api": app.version}

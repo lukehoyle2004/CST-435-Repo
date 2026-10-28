@@ -1,11 +1,12 @@
-# Render.com blueprint for the FastAPI model service (Cloud #2).
+# Render.com blueprint for the Seq-Sight FastAPI model service (Cloud #2).
 # In the Render dashboard: New -> Blueprint -> point at this repo.
 # Set SUPABASE_URL and SUPABASE_SERVICE_KEY as environment variables (secrets)
 # in the service settings after the first deploy.
 services:
   - type: web
-    name: attend-it-api
+    name: seq-sight-api
     runtime: python
+    rootDir: Deep-Learning/Project-Templates/Topic_4_attend-it
     plan: free
     buildCommand: "pip install -r api/requirements.txt"
     startCommand: "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
@@ -19,3 +20,5 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: TORCH_NUM_THREADS
+        value: "1"

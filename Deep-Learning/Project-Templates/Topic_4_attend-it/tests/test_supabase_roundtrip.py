@@ -1,38 +1,44 @@
-"""Supabase round-trip test.
+"""Supabase round-trip: /predict must write a `seq_predictions` row, with its attention
+vector, linked to a `seq_runs` row.
 
-Inserts a fixture dataset, trains against it, and confirms a run row was written.
-Skipped automatically unless real Supabase credentials are present, so the suite
-still passes offline. Run it against a real (throwaway) project with:
+Talks to the real database, so it is skipped unless SUPABASE_URL and
+SUPABASE_SERVICE_KEY are set (a local .env). The row it creates is deleted.
 
-    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... pytest tests/test_supabase_roundtrip.py
+    pytest tests/test_supabase_roundtrip.py -v
 """
 from __future__ import annotations
+
+import hashlib
 
 import pytest
 
 from tests.conftest import has_supabase_creds
 
-pytestmark = pytest.mark.skipif(
-    not has_supabase_creds(), reason="No live Supabase credentials in environment."
-)
+pytestmark = pytest.mark.skipif(not has_supabase_creds(), reason="No live Supabase credentials.")
 
 
-def test_dataset_train_run_roundtrip():
+def test_predict_logs_attention_linked_to_run():
     from fastapi.testclient import TestClient
 
+    from api import db
     from api.main import app
 
+    text = "Round-trip test: a dull, lifeless film with one wonderful scene."
     with TestClient(app) as c:
-        ds = c.post(
-            "/datasets", json={"name": "roundtrip", "n_rows": 400, "seq_len": 12}
-        ).json()
-        resp = c.post(
-            "/train",
-            json={"dataset_id": ds["id"], "lr": 0.01, "batch_size": 32, "epochs": 8},
-        )
-        assert resp.status_code == 200
-        run_id = resp.json()["run_id"]
-
-        got = c.get(f"/runs/{run_id}")
-        assert got.status_code == 200
-        assert got.json()["dataset_id"] == ds["id"]
+        r = c.post("/predict", json={"text": text})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["logged"] is True
+    client = db.get_client()
+    try:
+        rows = (client.table("seq_predictions")
+                .select("*,seq_runs(run_id,name)").eq("id", body["prediction_id"]).execute().data)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["text_sha256"] == hashlib.sha256(text.encode()).hexdigest()
+        assert row["predicted_class"] == body["class_name"]
+        assert row["seq_runs"]["name"] == "attention"
+        assert row["attention"] == pytest.approx(body["attention"])
+        assert text not in str(row)
+    finally:
+        client.table("seq_predictions").delete().eq("id", body["prediction_id"]).execute()
