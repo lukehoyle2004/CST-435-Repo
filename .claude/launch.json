@@ -1,0 +1,36 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "seq-sight-api",
+      "runtimeExecutable": "C:/Users/lukeh/OneDrive/Documents/GitHub/CST-435-Repo/Deep-Learning/Project-Templates/Topic_4_attend-it/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "api.main:app",
+        "--port",
+        "8000",
+        "--app-dir",
+        "C:/Users/lukeh/OneDrive/Documents/GitHub/CST-435-Repo/Deep-Learning/Project-Templates/Topic_4_attend-it"
+      ],
+      "cwd": "C:/Users/lukeh/OneDrive/Documents/GitHub/CST-435-Repo/Deep-Learning/Project-Templates/Topic_4_attend-it",
+      "port": 8000
+    },
+    {
+      "name": "seq-sight-ui",
+      "runtimeExecutable": "C:/Users/lukeh/OneDrive/Documents/GitHub/CST-435-Repo/Deep-Learning/Project-Templates/Topic_4_attend-it/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "streamlit",
+        "run",
+        "app.py",
+        "--server.port",
+        "8501",
+        "--server.headless",
+        "true"
+      ],
+      "cwd": "C:/Users/lukeh/OneDrive/Documents/GitHub/CST-435-Repo/Deep-Learning/Project-Templates/Topic_4_attend-it/ui",
+      "port": 8501
+    }
+  ]
+}
