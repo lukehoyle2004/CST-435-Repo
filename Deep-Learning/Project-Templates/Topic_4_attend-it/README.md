@@ -6,7 +6,7 @@
 | **Render API** (docs at `/docs`) | https://seq-sight-api-lp8s.onrender.com |
 | **Supabase (Postgres)** | https://owovmircxxpypggamqsy.supabase.co (project `see-seq`, ref `owovmircxxpypggamqsy`) |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_4_attend-it |
-| **Video walkthrough (Luke Hoyle)** | _add link_ |
+| **Video walkthrough (Luke Hoyle)** | https://youtu.be/xTeAfZvjymY |
 | **Engineering report** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md): attention derivation, matched comparison, interpretation, ethics |
 | **Model card** | [MODEL_CARD.md](MODEL_CARD.md) |
 
@@ -258,4 +258,4 @@ CI: `.github/workflows/seq-sight-tests.yml` on every push that touches this fold
 - [x] pytest suite (input length, attention shape, regression, Supabase round trip, outage, UI) and CI
 - [x] Deploy Supabase, Render and Streamlit Community Cloud; add the URLs above
 - [x] README, model card, dataset card, privacy statement, engineering report
-- [ ] Record the video walkthrough
+- [x] Record the video walkthrough
