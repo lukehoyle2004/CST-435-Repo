@@ -33,6 +33,8 @@ def configured() -> bool:
 
 def get_client() -> Client:
     global _client
+    if not configured():
+        raise RuntimeError("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY)")
     if _client is None:
         _client = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
     return _client

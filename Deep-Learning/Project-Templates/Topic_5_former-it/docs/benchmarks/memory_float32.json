@@ -1,0 +1,66 @@
+{
+  "dtype": "float32",
+  "python_only_mb": 19.7,
+  "after_imports_mb": 190.6,
+  "models": {
+    "bert": {
+      "checkpoint": "distilbert-base-uncased@12040accad",
+      "params": 66985530,
+      "rss_before_mb": 190.6,
+      "rss_after_load_mb": 334.3,
+      "rss_after_inference_mb": 594.0,
+      "load_s": 11.07,
+      "latency_ms": 220.8,
+      "output": {
+        "candidates": [
+          {
+            "token": "safer",
+            "score": 0.8811
+          },
+          {
+            "token": "unsafe",
+            "score": 0.02127
+          },
+          {
+            "token": "easier",
+            "score": 0.01706
+          },
+          {
+            "token": "quieter",
+            "score": 0.01484
+          },
+          {
+            "token": "cleaner",
+            "score": 0.0052
+          }
+        ],
+        "filled_text": "The city council voted on Tuesday to expand the bike lane network after a year of public meetings. Supporters said the lanes would make streets safer, while some shop owners worried about losing parking spaces in front of their stores."
+      }
+    },
+    "gpt2": {
+      "checkpoint": "distilgpt2@2290a62682",
+      "params": 81912576,
+      "rss_before_mb": 335.7,
+      "rss_after_load_mb": 266.0,
+      "rss_after_inference_mb": 596.8,
+      "load_s": 11.88,
+      "latency_ms": 1563.6,
+      "output": {
+        "continuation": "\n\n\nThe city has been working with the city to expand its bike lane system, which is designed to reduce traffic congestion and reduce traffic.\nThe council voted to expand it in November, but"
+      }
+    },
+    "t5": {
+      "checkpoint": "t5-small@df1b051c49",
+      "params": 60506624,
+      "rss_before_mb": 281.9,
+      "rss_after_load_mb": 363.0,
+      "rss_after_inference_mb": 549.5,
+      "load_s": 7.29,
+      "latency_ms": 1186.1,
+      "output": {
+        "summary": "the city council voted to expand the bike lane network after a year of public meetings. some shop owners worried about losing parking spaces in front of their stores."
+      }
+    }
+  },
+  "after_unload_mb": 290.7
+}

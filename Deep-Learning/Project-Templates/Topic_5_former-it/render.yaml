@@ -1,13 +1,19 @@
-# Render.com blueprint for the FastAPI model service (Cloud #2).
+# Render.com blueprint for the TrioFormer FastAPI inference service.
 # In the Render dashboard: New -> Blueprint -> point at this repo.
 # Set SUPABASE_URL and SUPABASE_SERVICE_KEY as environment variables (secrets)
 # in the service settings after the first deploy.
+#
+# The build step downloads the three pinned checkpoints (~1 GB on disk) into
+# .hf_cache inside the service directory, so they ship with the deploy and a
+# request never waits on a download. At run time only one pretrained model is
+# kept in memory (TRIO_MAX_RESIDENT=1) to stay inside the free tier's 512 MB.
 services:
   - type: web
-    name: former-it-api
+    name: trioformer-api
     runtime: python
+    rootDir: Deep-Learning/Project-Templates/Topic_5_former-it
     plan: free
-    buildCommand: "pip install -r api/requirements.txt"
+    buildCommand: "pip install -r api/requirements.txt && python -m scripts.prefetch_models"
     startCommand: "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /healthz
     envVars:
@@ -19,3 +25,18 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: HF_HOME
+        value: ".hf_cache"
+      - key: TORCH_NUM_THREADS
+        value: "1"
+      - key: TRIO_MAX_RESIDENT
+        value: "1"
+      # float32 by default. If the instance runs out of memory, bfloat16 roughly
+      # halves the weights at a large CPU-latency cost (see docs/benchmarks/memory_*.json).
+      - key: TRIO_DTYPE
+        value: "float32"
+      # Fewer glibc malloc arenas = less heap fragmentation when models are swapped.
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"

@@ -1,0 +1,66 @@
+{
+  "dtype": "bfloat16",
+  "python_only_mb": 20.0,
+  "after_imports_mb": 190.1,
+  "models": {
+    "bert": {
+      "checkpoint": "distilbert-base-uncased@12040accad",
+      "params": 66985530,
+      "rss_before_mb": 190.1,
+      "rss_after_load_mb": 373.6,
+      "rss_after_inference_mb": 378.0,
+      "load_s": 4.14,
+      "latency_ms": 2771.7,
+      "output": {
+        "candidates": [
+          {
+            "token": "safer",
+            "score": 0.88199
+          },
+          {
+            "token": "unsafe",
+            "score": 0.02074
+          },
+          {
+            "token": "easier",
+            "score": 0.0172
+          },
+          {
+            "token": "quieter",
+            "score": 0.01518
+          },
+          {
+            "token": "cleaner",
+            "score": 0.00493
+          }
+        ],
+        "filled_text": "The city council voted on Tuesday to expand the bike lane network after a year of public meetings. Supporters said the lanes would make streets safer, while some shop owners worried about losing parking spaces in front of their stores."
+      }
+    },
+    "gpt2": {
+      "checkpoint": "distilgpt2@2290a62682",
+      "params": 81912576,
+      "rss_before_mb": 373.9,
+      "rss_after_load_mb": 420.2,
+      "rss_after_inference_mb": 433.9,
+      "load_s": 0.88,
+      "latency_ms": 12705.8,
+      "output": {
+        "continuation": "\n\n\nThe city has been working on a plan to expand bike lanes in the city since the city began a pilot program in 2013.\nThe plan, which was approved by the city council,"
+      }
+    },
+    "t5": {
+      "checkpoint": "t5-small@df1b051c49",
+      "params": 60506624,
+      "rss_before_mb": 428.8,
+      "rss_after_load_mb": 411.5,
+      "rss_after_inference_mb": 420.3,
+      "load_s": 1.74,
+      "latency_ms": 4993.6,
+      "output": {
+        "summary": "the city council voted to expand the bike lane network after a year of public meetings. some shop owners worried about losing parking spaces in front of their stores."
+      }
+    }
+  },
+  "after_unload_mb": 390.1
+}

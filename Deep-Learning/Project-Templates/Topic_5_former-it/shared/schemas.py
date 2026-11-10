@@ -1,136 +1,167 @@
-"""Pydantic request/response models shared by the API and (optionally) the UI.
+"""Request and response models for the TrioFormer API (the public contract).
 
-The contract between the three clouds. "Former-It" is sequence classification
-with a from-scratch tiny **Transformer encoder** (positional encoding +
-multi-head self-attention); the per-head attention matrices are returned so a
-client can see *which positions attend to which*. The *shape* of the contract is
-identical to the base template; only the fields change.
+Product 5B interfaces are built against these shapes, so every field carries a
+description and an example that show up in the OpenAPI docs at ``/docs``.
 """
 from __future__ import annotations
 
-from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+EXAMPLE_PARAGRAPH = (
+    "The city council voted on Tuesday to expand the bike lane network after a year of public "
+    "meetings. Supporters said the new lanes would make downtown streets safer for commuters, "
+    "while several shop owners worried about losing parking in front of their stores."
+)
 
-# ---------------------------------------------------------------------------
-# Datasets
-# ---------------------------------------------------------------------------
-class DatasetCreate(BaseModel):
-    """Request body for POST /datasets."""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    n_rows: int = Field(2000, ge=200, le=20_000)
-    seq_len: int = Field(8, ge=4, le=32, description="Symbols per sequence (even).")
-    seed: int = Field(42, description="Seed for the synthetic sequence generator.")
+Source = Literal["api", "benchmark"]
 
 
-class Dataset(BaseModel):
-    """A dataset row as stored in Supabase."""
+class TextRequest(BaseModel):
+    """Fields shared by the three pretrained-model endpoints."""
 
-    id: int
-    name: str
-    n_rows: int
-    seq_len: int
-    vocab_size: int
-    n_classes: int
-    created_at: datetime
+    text: str = Field(..., min_length=1, max_length=2000,
+                      description="The paragraph. Only its SHA-256 hash is stored, never the text.")
+    source: Source = Field("api", description="'benchmark' marks calls made by scripts/benchmark_latency.py.")
 
 
-# ---------------------------------------------------------------------------
-# Training
-# ---------------------------------------------------------------------------
-class TrainRequest(BaseModel):
-    """Request body for POST /train."""
-
-    dataset_id: int
-    lr: float = Field(0.005, gt=0.0, description="Adam learning rate.")
-    batch_size: int = Field(64, ge=1)
-    epochs: int = Field(20, ge=1, le=500)
-    test_size: float = Field(0.2, gt=0.0, lt=1.0, description="Held-out fraction.")
-
-
-class ClassMetrics(BaseModel):
-    accuracy: float
-    macro_f1: float
+class BertFillMaskRequest(TextRequest):
+    model_config = ConfigDict(json_schema_extra={"examples": [
+        {"text": EXAMPLE_PARAGRAPH, "mask_word": "safer", "top_k": 5},
+        {"text": "The capital of France is [MASK].", "top_k": 5},
+    ]})
+    mask_word: Optional[str] = Field(
+        None, min_length=1, max_length=50,
+        description="Hide the first whole-word occurrence of this word. Omit it if the text already "
+                    "contains exactly one [MASK].")
+    top_k: int = Field(5, ge=1, le=10, description="How many candidates to return.")
 
 
-class Run(BaseModel):
-    """A training-run row as stored in Supabase (metrics only)."""
-
-    id: int
-    dataset_id: int
-    lr: float
-    batch_size: int
-    epochs: int
-    accuracy: float
-    macro_f1: float
-    created_at: datetime
+class Gpt2ContinueRequest(TextRequest):
+    model_config = ConfigDict(json_schema_extra={"examples": [
+        {"text": EXAMPLE_PARAGRAPH, "max_new_tokens": 40}]})
+    max_new_tokens: int = Field(40, ge=1, le=80, description="Tokens to generate.")
+    do_sample: bool = Field(False, description="False = greedy (deterministic, comparable latency).")
+    temperature: float = Field(0.8, gt=0.0, le=2.0, description="Used only when do_sample is true.")
+    top_p: float = Field(0.95, gt=0.0, le=1.0, description="Used only when do_sample is true.")
+    seed: int = Field(0, ge=0, description="Sampling seed (do_sample only).")
 
 
-class TrainResponse(BaseModel):
-    run_id: int
-    metrics: ClassMetrics
+class T5SummarizeRequest(TextRequest):
+    model_config = ConfigDict(json_schema_extra={"examples": [
+        {"text": EXAMPLE_PARAGRAPH, "max_new_tokens": 60}]})
+    max_new_tokens: int = Field(60, ge=8, le=120, description="Upper bound on summary length (tokens).")
+    min_new_tokens: int = Field(10, ge=0, le=60, description="Lower bound on summary length (tokens).")
+    num_beams: int = Field(2, ge=1, le=4, description="Beam width; more beams cost more latency.")
 
 
-# ---------------------------------------------------------------------------
-# Prediction  (per-head self-attention explainability)
-# ---------------------------------------------------------------------------
-class PredictRequest(BaseModel):
-    """Request body for POST /predict."""
-
-    run_id: int
-    sequence: List[int] = Field(..., min_length=2, description="Symbol ids to classify.")
+class EncoderAttentionRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [
+        {"text": "dog bites man bites dog"}, {"text": "never odd or even"}]})
+    text: str = Field("dog bites man bites dog", min_length=1, max_length=200,
+                      description="2-12 words. Punctuation and case are ignored.")
+    source: Source = "api"
 
 
-class PredictResponse(BaseModel):
-    run_id: int
-    label: int
-    class_name: str
-    confidence: float = Field(..., description="Softmax probability of the top class.")
-    probs: List[float]
-    sequence: List[int] = Field(..., description="The symbols the model scored.")
+class InferenceMeta(BaseModel):
+    """Fields every model endpoint returns: what ran, how long it took, whether it was logged."""
+
+    model: Literal["encoder_block", "bert", "gpt2", "t5"]
+    archetype: Literal["encoder", "decoder", "encoder-decoder"]
+    task: str
+    checkpoint: str = Field(..., description="checkpoint@commit that served the call (provenance).")
+    input_sha256: str = Field(..., description="SHA-256 of the stripped input text; the only trace of it we keep.")
+    input_tokens: int
+    output_tokens: int
+    latency_ms: float = Field(..., description="Server-side model compute time (tokenise -> forward/generate -> decode).")
+    load_ms: float = Field(..., description="Time spent loading the checkpoint during this request (0 if already resident).")
+    cold_start: bool
+    total_ms: float = Field(..., description="Server-side wall time for the whole request before logging, including any wait for the model lock.")
+    inference_id: Optional[int] = Field(None, description="trio_inferences.id, or null if the database was unreachable.")
+    logged: bool = Field(..., description="False when the result could not be written to Supabase (outage).")
+
+
+class Candidate(BaseModel):
+    token: str
+    score: float
+
+
+class BertFillMaskResponse(InferenceMeta):
+    masked_text: str
+    candidates: List[Candidate]
+    filled_text: str
+
+
+class Gpt2ContinueResponse(InferenceMeta):
+    continuation: str
+
+
+class T5SummarizeResponse(InferenceMeta):
+    summary: str
+
+
+class HeadSummary(BaseModel):
+    head: int
+    mirror: float = Field(..., description="Mean weight on the palindrome partner (anti-diagonal).")
+    self: float = Field(..., description="Mean weight on the query's own position (diagonal).")
+    same_word: float = Field(..., description="Mean weight on other positions holding the same word.")
+    uniform: float = Field(..., description="1/n: what a head that ignored its input would give.")
+
+
+class EncoderAttentionResponse(InferenceMeta):
+    words: List[str]
+    ids: List[int] = Field(..., description="Words relabelled by first appearance (what the model sees).")
+    prediction: str
+    probabilities: Dict[str, float]
     n_layers: int
     n_heads: int
     attention: List[List[List[List[float]]]] = Field(
-        ...,
-        description="Per-layer, per-head [n_layers][n_heads][T][T] attention; each row sums to 1.",
-    )
-    sequence_sha256: str = Field(..., description="Hash of the input sequence (no raw symbols stored).")
-    true_class: Optional[str] = Field(
-        None, description="Ground-truth class when predicting a generated sample."
-    )
+        ..., description="attention[layer][head][query][key], n x n over the real words; rows sum to 1.")
+    head_summary: List[List[HeadSummary]] = Field(..., description="head_summary[layer][head].")
+    model_accuracy: float = Field(..., description="Held-out accuracy of the toy classifier.")
 
 
-class PredictSampleRequest(BaseModel):
-    """Request body for POST /predict_sample (no sequence needed)."""
+class BenchmarkRow(BaseModel):
+    model: str
+    archetype: str
+    checkpoint: str
+    n_calls: int
+    n_warm: int
+    n_cold: int
+    mean_latency_ms: Optional[float]
+    p50_latency_ms: Optional[float]
+    p95_latency_ms: Optional[float]
+    min_latency_ms: Optional[float]
+    max_latency_ms: Optional[float]
+    mean_load_ms: Optional[float]
+    mean_total_ms: Optional[float]
+    mean_input_tokens: Optional[float]
+    mean_output_tokens: Optional[float]
+    ms_per_output_token: Optional[float]
+    distinct_inputs: int
+    first_served_at: Optional[str]
+    last_served_at: Optional[str]
+    refreshed_at: Optional[str]
 
-    run_id: int
-    seed: int = Field(0, description="Seed for the generated sample.")
-    true_class: Optional[int] = Field(
-        None, ge=0, description="Force a class index; None picks one at random."
-    )
+
+class BenchmarksResponse(BaseModel):
+    refreshed: bool = Field(..., description="True if this request refreshed the materialized view.")
+    rows: List[BenchmarkRow]
 
 
-# ---------------------------------------------------------------------------
-# Meta
-# ---------------------------------------------------------------------------
-class ClassesResponse(BaseModel):
-    classes: List[str]
-    n_classes: int
-
-
-# ---------------------------------------------------------------------------
-# Ops
-# ---------------------------------------------------------------------------
 class Health(BaseModel):
-    status: str
-    model_loader: bool
-    supabase: bool
+    status: Literal["ok", "degraded"]
+    model_loader: dict
+    database: dict
 
 
 class Version(BaseModel):
+    api: str
     git_sha: str
-    torch_version: str
-    supabase_project_ref: Optional[str]
+    python: str
+    torch: str
+    transformers: Optional[str]
+    dtype: str
+    models: dict
+    encoder_block: dict

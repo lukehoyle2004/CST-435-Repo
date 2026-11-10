@@ -14,3 +14,6 @@ venv/
 
 # OS
 .DS_Store
+
+# Hugging Face model cache (Render fills it at build time)
+.hf_cache/
