@@ -1,0 +1,122 @@
+[
+  {
+    "path": "/encoder_attention",
+    "request": {
+      "text": "dog bites man bites dog"
+    },
+    "expected": {
+      "prediction": "palindrome",
+      "probabilities": {
+        "not a palindrome": 0.0066,
+        "palindrome": 0.9934
+      },
+      "checkpoint": "hand-written@4807bf7f17",
+      "output_tokens": 1
+    }
+  },
+  {
+    "path": "/encoder_attention",
+    "request": {
+      "text": "the cat sat on the mat"
+    },
+    "expected": {
+      "prediction": "not a palindrome",
+      "probabilities": {
+        "not a palindrome": 1.0,
+        "palindrome": 0.0
+      },
+      "checkpoint": "hand-written@4807bf7f17",
+      "output_tokens": 1
+    }
+  },
+  {
+    "path": "/bert_fillmask",
+    "request": {
+      "text": "I drank a cup of [MASK] this morning.",
+      "top_k": 5
+    },
+    "expected": {
+      "candidates": [
+        {
+          "token": "coffee",
+          "score": 0.54012
+        },
+        {
+          "token": "tea",
+          "score": 0.13555
+        },
+        {
+          "token": "water",
+          "score": 0.0799
+        },
+        {
+          "token": "wine",
+          "score": 0.0434
+        },
+        {
+          "token": "beer",
+          "score": 0.01848
+        }
+      ],
+      "checkpoint": "distilbert-base-uncased@12040accad",
+      "output_tokens": 1
+    }
+  },
+  {
+    "path": "/bert_fillmask",
+    "request": {
+      "text": "The capital of France is [MASK].",
+      "top_k": 5
+    },
+    "expected": {
+      "candidates": [
+        {
+          "token": "marseille",
+          "score": 0.14269
+        },
+        {
+          "token": "nantes",
+          "score": 0.0902
+        },
+        {
+          "token": "toulouse",
+          "score": 0.08808
+        },
+        {
+          "token": "paris",
+          "score": 0.08618
+        },
+        {
+          "token": "lyon",
+          "score": 0.07721
+        }
+      ],
+      "checkpoint": "distilbert-base-uncased@12040accad",
+      "output_tokens": 1
+    }
+  },
+  {
+    "path": "/gpt2_continue",
+    "request": {
+      "text": "The best way to learn a new language is",
+      "max_new_tokens": 20
+    },
+    "expected": {
+      "continuation": " to learn it from the experience of learning it from a different language.\n\n\nThe best language",
+      "checkpoint": "distilgpt2@2290a62682",
+      "output_tokens": 20
+    }
+  },
+  {
+    "path": "/t5_summarize",
+    "request": {
+      "text": "The city council voted on Tuesday to expand the bike lane network after a year of public meetings. Supporters said the new lanes would make downtown streets safer for commuters, while several shop owners worried about losing parking in front of their stores.",
+      "max_new_tokens": 40
+    },
+    "expected": {
+      "summary": "the city council voted to expand the bike lane network after a year of public meetings. supporters said the new lanes would make downtown streets safer for commuters.",
+      "checkpoint": "t5-small@df1b051c49",
+      "output_tokens": 40
+    }
+  }
+]

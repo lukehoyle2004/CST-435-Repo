@@ -110,6 +110,7 @@ class HeadSummary(BaseModel):
 
 
 class EncoderAttentionResponse(InferenceMeta):
+    model_config = ConfigDict(protected_namespaces=())
     words: List[str]
     ids: List[int] = Field(..., description="Words relabelled by first appearance (what the model sees).")
     prediction: str
@@ -151,6 +152,7 @@ class BenchmarksResponse(BaseModel):
 
 
 class Health(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     status: Literal["ok", "degraded"]
     model_loader: dict
     database: dict

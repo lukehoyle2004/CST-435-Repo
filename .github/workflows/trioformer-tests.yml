@@ -1,0 +1,54 @@
+# Runs the TrioFormer (Topic 5) pytest suite on every push and pull request that
+# touches the project. No secrets are configured, so the live Supabase round-trip
+# test skips and the API runs against the in-memory FakeDB. Everything else is
+# real: the hand-written transformer block (shape, attention sums, gradient flow,
+# permutation equivariance, torch.nn matched-init benchmark), the exported toy
+# encoder, the migration's privacy/access rules, all seven endpoints on the
+# pinned BERT / GPT-2 / T5 checkpoints, the Supabase-outage and failed-load
+# paths, and the regression fixture. Checkpoints are cached between runs.
+name: TrioFormer tests
+
+on:
+  push:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_5_former-it/**"
+      - ".github/workflows/trioformer-tests.yml"
+  pull_request:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_5_former-it/**"
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Deep-Learning/Project-Templates/Topic_5_former-it
+    env:
+      HF_HOME: ${{ github.workspace }}/.hf_cache
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # matches PYTHON_VERSION in render.yaml
+          cache: pip
+          cache-dependency-path: |
+            Deep-Learning/Project-Templates/Topic_5_former-it/api/requirements.txt
+            Deep-Learning/Project-Templates/Topic_5_former-it/requirements-dev.txt
+
+      - name: Install dependencies (CPU-only torch)
+        run: pip install -r requirements-dev.txt
+
+      - name: Cache the pinned Hugging Face checkpoints
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.hf_cache
+          key: hf-trioformer-${{ hashFiles('Deep-Learning/Project-Templates/Topic_5_former-it/src/pipelines.py') }}
+
+      - name: Prefetch checkpoints (no-op when cached)
+        run: python -m scripts.prefetch_models
+
+      - name: Run pytest
+        run: pytest -q

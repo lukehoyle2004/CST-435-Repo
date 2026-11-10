@@ -110,7 +110,9 @@ def load_bundle(spec: ModelSpec) -> Bundle:
     import transformers
 
     auto = getattr(transformers, spec.auto_class)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(spec.checkpoint, revision=spec.revision)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        spec.checkpoint, revision=spec.revision, clean_up_tokenization_spaces=True
+    )
     model = auto.from_pretrained(spec.checkpoint, revision=spec.revision, torch_dtype=_dtype())
     model.eval()
     commit = getattr(model.config, "_commit_hash", None)
