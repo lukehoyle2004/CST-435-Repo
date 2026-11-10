@@ -207,3 +207,18 @@ def test_version_reports_pinned_provenance(client):
 def test_root_redirects_to_docs(client):
     r = client.get("/", follow_redirects=False)
     assert r.status_code in (302, 307) and r.headers["location"] == "/docs"
+
+
+def test_positional_encoding_toggle_makes_order_visible_or_invisible(client):
+    """With PE the encoder separates "a b a" (palindrome) from "a a b"; without it, it cannot."""
+    def run(text, pe):
+        r = client.post("/encoder_attention", json={"text": text, "positional_encoding": pe})
+        assert r.status_code == 200 and r.json()["positional_encoding"] is pe
+        return r.json()
+
+    with_pe = [run(t, True) for t in ("a b a", "a a b")]
+    assert [b["prediction"] for b in with_pe] == ["palindrome", "not a palindrome"]
+
+    no_pe = [run(t, False) for t in ("a b a", "a a b")]
+    assert no_pe[0]["probabilities"] == pytest.approx(no_pe[1]["probabilities"], abs=1e-4)
+    assert client.store.inferences[-1]["output"]["positional_encoding"] is False

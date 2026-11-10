@@ -299,16 +299,26 @@ class TinyTransformerEncoder(nn.Module):
         self.scale = math.sqrt(d_model)
 
     def forward(
-        self, tokens: torch.Tensor, padding_mask: Optional[torch.Tensor] = None
+        self,
+        tokens: torch.Tensor,
+        padding_mask: Optional[torch.Tensor] = None,
+        add_positional_encoding: bool = True,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Encode ``tokens [B, T]``.
+
+        Args:
+            tokens: Token ids ``[B, T]``.
+            padding_mask: Optional boolean ``[B, T]``, ``True`` = real token.
+            add_positional_encoding: Set ``False`` to skip the positional table
+                for this call (a teaching switch: the same weights become blind
+                to word order and therefore permutation-equivariant).
 
         Returns:
             ``hidden [B, T, D]`` and a list of ``n_layers`` attention tensors,
             each ``[B, H, T, T]``.
         """
         x = self.embed(tokens) * self.scale                          # [B, T, D]
-        if self.pos is not None:
+        if self.pos is not None and add_positional_encoding:
             x = self.pos(x)
         attentions: List[torch.Tensor] = []
         for block in self.blocks:

@@ -64,3 +64,16 @@ def test_rpc_parameters_match_the_api_row():
     assert params == ["input_sha256", "n_chars", "n_words", "model", "archetype", "checkpoint", "task",
                       "output", "latency_ms", "load_ms", "cold_start", "input_tokens", "output_tokens",
                       "source", "api_version"]
+
+
+HOURLY = re.sub(r"--[^\n]*", "", (Path(__file__).resolve().parents[1] / "db" / "migrations"
+                                  / "002_benchmarks_hourly.sql").read_text(encoding="utf-8")).lower()
+
+
+def test_hourly_view_adds_a_time_axis_and_stays_aggregate_only():
+    assert "create materialized view trio_benchmarks_hourly" in HOURLY
+    assert "group by i.model, date_trunc('hour', i.served_at)" in HOURLY
+    assert "where i.source <> 'test'" in HOURLY
+    assert "create unique index idx_trio_benchmarks_hourly on trio_benchmarks_hourly (model, hour)" in HOURLY
+    assert "refresh materialized view concurrently trio_benchmarks_hourly" in HOURLY
+    assert "grant select on trio_benchmarks_hourly to anon" in HOURLY

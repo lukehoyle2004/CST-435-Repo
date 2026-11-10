@@ -207,3 +207,13 @@ def test_dropout_is_active_in_train_mode_only():
     c, _ = blk(x)
     d, _ = blk(x)
     assert torch.allclose(c, d)
+
+
+def test_positional_encoding_can_be_skipped_per_call():
+    torch.manual_seed(0)
+    enc = TinyTransformerEncoder(10, D, H, FF, use_positional_encoding=True).eval()
+    tokens = torch.tensor([[1, 2, 3, 4]])
+    perm = torch.tensor([3, 1, 0, 2])
+    a, _ = enc(tokens, add_positional_encoding=False)
+    b, _ = enc(tokens[:, perm], add_positional_encoding=False)
+    assert torch.allclose(b, a[:, perm], atol=1e-5)          # same weights, now order-blind

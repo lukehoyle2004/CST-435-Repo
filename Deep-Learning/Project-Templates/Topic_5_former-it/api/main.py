@@ -190,7 +190,10 @@ def encoder_attention(req: EncoderAttentionRequest, response: Response) -> dict:
     The encoder was trained offline to tell whether a sequence of words is a palindrome
     ("dog bites man bites dog"). Words are relabelled by first appearance, so the model never
     needs the words themselves. Returns the prediction and every layer's per-head attention matrix
-    (`attention[layer][head][query][key]`) plus per-head summary statistics."""
+    (`attention[layer][head][query][key]`) plus per-head summary statistics.
+
+    Set `positional_encoding: false` to run the same weights without positional encoding: the
+    encoder then sees a bag of words, so "a b a" and "a a b" get the same answer."""
     started = time.perf_counter()
     words = re.findall(r"[a-z0-9']+", req.text.lower())
     if not toy.MIN_LEN <= len(words) <= toy.MAX_LEN:
@@ -203,7 +206,7 @@ def encoder_attention(req: EncoderAttentionRequest, response: Response) -> dict:
 
     t0 = time.perf_counter()
     with torch.inference_mode():
-        logits, attns = model(tokens, mask)
+        logits, attns = model(tokens, mask, req.positional_encoding)
         probs = torch.softmax(logits[0], dim=-1)
     latency_ms = (time.perf_counter() - t0) * 1000
 
@@ -215,7 +218,8 @@ def encoder_attention(req: EncoderAttentionRequest, response: Response) -> dict:
     meta_fields = record(
         response, text=req.text, model="encoder_block", archetype="encoder",
         checkpoint=f"hand-written@{meta['weights_sha256'][:10]}", task="attention",
-        stored_output={"prediction": prediction, "confidence": round(float(probs[label]), 4)},
+        stored_output={"prediction": prediction, "confidence": round(float(probs[label]), 4),
+                       "positional_encoding": req.positional_encoding},
         latency_ms=latency_ms, load_ms=0.0, input_tokens=n, output_tokens=1,
         source=req.source, started=started,
     )
@@ -224,6 +228,7 @@ def encoder_attention(req: EncoderAttentionRequest, response: Response) -> dict:
         "probabilities": {c: round(float(p), 5) for c, p in zip(toy.CLASS_NAMES, probs)},
         "n_layers": len(attns), "n_heads": attns[0].shape[1], "attention": attention,
         "head_summary": summary, "model_accuracy": meta["test"]["accuracy"],
+        "positional_encoding": req.positional_encoding,
     }
 
 

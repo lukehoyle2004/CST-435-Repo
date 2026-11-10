@@ -61,6 +61,9 @@ class EncoderAttentionRequest(BaseModel):
         {"text": "dog bites man bites dog"}, {"text": "never odd or even"}]})
     text: str = Field("dog bites man bites dog", min_length=1, max_length=200,
                       description="2-12 words. Punctuation and case are ignored.")
+    positional_encoding: bool = Field(
+        True, description="False skips the sinusoidal positional encoding for this call: the same "
+                          "weights then see a bag of words and give identical answers for any reordering.")
     source: Source = "api"
 
 
@@ -120,7 +123,8 @@ class EncoderAttentionResponse(InferenceMeta):
     attention: List[List[List[List[float]]]] = Field(
         ..., description="attention[layer][head][query][key], n x n over the real words; rows sum to 1.")
     head_summary: List[List[HeadSummary]] = Field(..., description="head_summary[layer][head].")
-    model_accuracy: float = Field(..., description="Held-out accuracy of the toy classifier.")
+    model_accuracy: float = Field(..., description="Held-out accuracy of the toy classifier (with positional encoding).")
+    positional_encoding: bool = Field(..., description="Whether positional encoding was added for this call.")
 
 
 class BenchmarkRow(BaseModel):

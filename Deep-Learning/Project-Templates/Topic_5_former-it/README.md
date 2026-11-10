@@ -13,8 +13,8 @@ show what attention actually computes.
 
 | | Link |
 |---|---|
-| **Render API** (interactive docs at `/docs`) | `https://<trioformer-api>.onrender.com` *(fill in from the Render dashboard)* |
-| **Supabase project reference** | `<project-ref>` → `https://<project-ref>.supabase.co` *(fill in)* |
+| **Render API** (interactive docs at `/docs`) | https://trioformer-api.onrender.com (docs: https://trioformer-api.onrender.com/docs) |
+| **Supabase project reference** | `jurmqdwomeiilrlebvuq` (project `trioformer`) → https://jurmqdwomeiilrlebvuq.supabase.co |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_5_former-it |
 | **Video walkthrough (Luke Hoyle)** | *(add link)* |
 | **Engineering report (Luke Hoyle)** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |
@@ -83,7 +83,7 @@ Every model response includes `input_sha256`, `latency_ms`, `load_ms`, `cold_sta
 down. Request and response schemas, with examples, are at `/docs`.
 
 ```bash
-curl -X POST "$API/t5_summarize" -H "Content-Type: application/json" -d '{"text": "The city council voted on Tuesday to expand the bike lane network after a year of public meetings. Supporters said the lanes would make streets safer."}'
+curl -X POST "https://trioformer-api.onrender.com/t5_summarize" -H "Content-Type: application/json" -d '{"text": "The city council voted on Tuesday to expand the bike lane network after a year of public meetings. Supporters said the lanes would make streets safer."}'
 ```
 
 ## Archetype recommendation matrix

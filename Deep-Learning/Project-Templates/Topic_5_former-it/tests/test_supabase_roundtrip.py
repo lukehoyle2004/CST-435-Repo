@@ -65,7 +65,8 @@ def test_anon_key_sees_only_the_aggregate_view():
     from supabase import create_client
 
     anon = create_client(os.environ["SUPABASE_URL"], anon_key)
-    assert anon.table("trio_benchmarks").select("model").execute().data   # readable
+    # Readable: a missing grant raises a permission error; an empty view returns [].
+    assert isinstance(anon.table("trio_benchmarks").select("model").execute().data, list)
     assert anon.table("trio_inferences").select("id").limit(1).execute().data == []  # RLS: no rows
     assert anon.table("trio_inputs").select("id").limit(1).execute().data == []
     with pytest.raises(Exception):

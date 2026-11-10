@@ -65,9 +65,17 @@ class PalindromeClassifier(nn.Module):
         )
         self.head = nn.Linear(d_model, len(CLASS_NAMES))
 
-    def forward(self, tokens: torch.Tensor, mask: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
-        """``tokens, mask [B, T]`` -> ``logits [B, 2]`` and per-layer attention ``[B, H, T, T]``."""
-        hidden, attns = self.encoder(tokens, mask)                       # [B, T, D]
+    def forward(
+        self, tokens: torch.Tensor, mask: torch.Tensor, add_positional_encoding: bool = True
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """``tokens, mask [B, T]`` -> ``logits [B, 2]`` and per-layer attention ``[B, H, T, T]``.
+
+        With ``add_positional_encoding=False`` the classifier sees a bag of words:
+        it gives the same answer for any reordering of the ids, so it cannot tell
+        "a b a" (ids 1 2 1, a palindrome) from "a a b" (ids 1 1 2, not one) --
+        the point the interface's toggle demonstrates.
+        """
+        hidden, attns = self.encoder(tokens, mask, add_positional_encoding)  # [B, T, D]
         m = mask.unsqueeze(-1).float()
         pooled = (hidden * m).sum(1) / m.sum(1).clamp(min=1.0)           # [B, D]
         return self.head(pooled), attns
