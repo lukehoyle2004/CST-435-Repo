@@ -71,9 +71,10 @@ Observed while building it (all reproducible through the API):
 `latency_ms` is model compute only. `load_ms` is checkpoint loading that happened during that
 request (0 when warm). `total_ms` is the whole server-side request. On a one-model-resident
 instance, a "compare all three" interface pays a cold swap on almost every call, and
-`trio_benchmarks` splits warm and cold calls for exactly that reason. Local dry-run medians,
-warm: BERT ≈ 0.27 s, GPT-2 ≈ 1.3 s for 40 tokens, T5 ≈ 1.4–1.6 s for ~43 tokens. The deployed
-numbers are in the engineering report.
+`trio_benchmarks` splits warm and cold calls for exactly that reason. Measured on Render's
+free instance (0.1 CPU), p50 model time: BERT 1.37 s, GPT-2 10.5 s for 40 tokens, T5 12.6 s for
+~43 tokens; checkpoint loads add 1.3–2.9 s when a model has to be swapped in. On a laptop CPU
+the same calls take 0.27 s, 1.3 s and 1.4–1.6 s.
 
 ## Privacy
 

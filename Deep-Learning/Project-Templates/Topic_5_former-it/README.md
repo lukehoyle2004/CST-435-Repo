@@ -94,7 +94,7 @@ curl -X POST "https://trioformer-api.onrender.com/t5_summarize" -H "Content-Type
 | **Writes** | nothing new: scores positions/labels | one token at a time, appended | a new sequence, cross-attending to the input |
 | **Native strength** | understanding: classify, tag, fill gaps, embed for search | open-ended generation, completion, chat | transforming one text into another: summarize, translate, rewrite |
 | **Compute profile** | **one forward pass**, cost grows with input length only | one forward pass **per generated token** (KV-cached), cost grows with output length | one encoder pass + one decoder pass per output token (+ beams) |
-| **Measured here** (local dry run, warm median) | ~0.27 s for 1 token | ~1.3 s for 40 tokens | ~1.4–1.6 s for ~43 tokens (2 beams) |
+| **Measured on Render** (`trio_benchmarks`, p50 model time) | 1.37 s for 1 token | 10.5 s for 40 tokens (268 ms/token) | 12.6 s for ~43 tokens, 2 beams (261 ms/token) |
 | **Choose it when** | the answer is a label, a span, a score or a vector | the answer is free text that continues a prompt | the answer is a rewritten version of an input |
 | **Avoid it when** | you need new text | you need a faithful, bounded rewrite of an input | you need open-ended text with no source |
 
@@ -115,9 +115,12 @@ curl -X POST "https://trioformer-api.onrender.com/t5_summarize" -H "Content-Type
   stays anchored to it through cross-attention, which keeps the output closer to the source
   than a decoder's. You pay for both stacks plus beam search.
 
-The latency rows above come from a local dry run (`docs/benchmarks/latency_local.json`).
-The figures quoted in the engineering report come from the **Supabase `trio_benchmarks`
-view** after `scripts/benchmark_latency.py` is run against the deployed service.
+The measured row comes from the **Supabase `trio_benchmarks` view** after
+`scripts/benchmark_latency.py --rounds 3` ran against the deployed service (66 logged calls,
+`docs/benchmarks/latency_render.json`). On the free instance (0.1 CPU) everything is 5–8×
+slower than on a laptop (`latency_local.json`), and switching models costs a further 2.5–3.3 s
+per call because only one checkpoint fits in memory. The cost comparison built from these
+numbers is in [docs/benchmarks/cost_comparison.md](docs/benchmarks/cost_comparison.md).
 
 ## The hand-written transformer (`src/transformer.py`)
 
@@ -231,7 +234,7 @@ rejected: it broke GPT-2's output ("the the the …") and cut BERT's top-1 proba
 .venv/Scripts/python -m pytest -q
 ```
 
-78 tests (4 skip without live Supabase credentials). They cover the hand-written block,
+81 tests (4 skip without live Supabase credentials). They cover the hand-written block,
 the toy encoder and the matched-init benchmark, the migration's privacy and access rules,
 all seven endpoints on the real pinned checkpoints, logging before responding, one input
 row per paragraph across models, raw text never reaching storage, cold-start accounting, a

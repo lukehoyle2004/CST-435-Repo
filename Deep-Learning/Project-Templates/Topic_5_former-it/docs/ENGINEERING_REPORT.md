@@ -2,11 +2,6 @@
 
 Luke Hoyle · CST-435 / AIT-204 Topic 5, Product 5 · Halo Group D2 (sole member)
 
-> **Before submitting:** the latency table in §1 currently holds the **local dry run**
-> (`docs/benchmarks/latency_local.json`). Replace it with the rows of the Supabase
-> `trio_benchmarks` view after running `scripts/benchmark_latency.py` against the Render
-> service, and rerun `scripts/cost_compare.py`.
-
 ## 1. Engineering report: three archetypes, one service
 
 TrioFormer sends the same paragraph to three pretrained transformers: DistilBERT (encoder),
@@ -29,25 +24,27 @@ clauses. That makes them faithful but mostly extractive.
 
 **(b) Compute profile.** The architecture predicts the cost, and the logged latencies confirm it.
 
-| Model (warm, median) | Tokens in → out | Server latency | Cold checkpoint load |
+| `trio_benchmarks` on Render (free tier: 0.1 CPU, 512 MB) | Tokens in → out | Model latency p50 / p95 | Cold checkpoint load (mean) |
 |---|---|---|---|
-| encoder (DistilBERT) | ~94 → 1 | ~0.27 s | 0.2–1.1 s |
-| decoder (DistilGPT-2) | ~91 → 40 | ~1.3 s | ~0.14–0.23 s |
-| encoder-decoder (T5-small) | ~104 → ~43 | ~1.4–1.6 s | ~0.2–0.25 s |
-| hand-written encoder | 5 words → label | ~1.3 ms | always resident |
+| encoder (DistilBERT) | 91 → 1 | 1.37 s / 2.80 s | 2.9 s |
+| decoder (DistilGPT-2) | 88 → 40 | 10.5 s / 12.0 s (268 ms per token) | 1.3 s |
+| encoder-decoder (T5-small) | 100 → 42.5 | 12.6 s / 13.3 s (261 ms per token) | 2.1 s |
+| hand-written encoder | 6 words → label | 1.2 ms | always resident |
 
 The encoder runs **one** forward pass, whatever the answer is, so its cost grows only with
 input length. The decoder runs one forward pass **per generated token**. Even with key/value
-caching, forty tokens cost roughly five times BERT's single pass. T5 pays for an encoder pass,
+caching, forty tokens cost roughly eight times BERT's single pass. T5 pays for an encoder pass,
 then a decoder pass per token for each of two beams. On a 0.1-CPU, 512 MB instance a second
 cost appears that the table separates out: only one checkpoint fits in memory, so an
 interface that compares all three models swaps checkpoints on almost every call. The view
-records these as `cold_start` rows with their own `load_ms`. In the interleaved benchmark,
-the swaps added roughly 0.15–0.4 s per call on top of the model compute. The cost comparison
+records these as `cold_start` rows with their own `load_ms`. In the interleaved benchmark
+(66 logged calls), the swaps added 2.5–3.3 s per call, while the network
+added only about 0.1 s. The cost comparison
 (`docs/benchmarks/cost_comparison.md`) puts this in money. At list prices, a frontier API costs
 about $0.09–0.11 per thousand of these calls on Claude Haiku 5.5 and $3.6–4.5 on Claude Opus
-5.5. A $7-per-month always-on instance breaks even against Opus at roughly 1,550–1,900 calls
-a month, and against Haiku only at about 62,000–77,000. The honest summary is that small
+5.5. A $7-per-month always-on instance breaks even against Opus at roughly 1,550–1,950 calls
+a month, and against Haiku only at about 62,000–77,000; on a $25 instance the generators
+could never serve enough calls to undercut Haiku at all. The honest summary is that small
 self-hosted models win on cost only at volume, never on quality.
 
 **(c) When I would choose each.** An **encoder** for a help desk that routes thousands of

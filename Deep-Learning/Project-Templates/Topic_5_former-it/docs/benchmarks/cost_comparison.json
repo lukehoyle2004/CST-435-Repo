@@ -1,88 +1,88 @@
 {
-  "source": "benchmark script summary (database not reachable)",
+  "source": "Supabase trio_benchmarks view",
   "rows": [
     {
       "model": "bert",
       "archetype": "encoder (fill-mask)",
-      "input_tokens": 94.33333333333333,
-      "output_tokens": 1,
-      "server_ms": 380.7,
-      "latency_ms": 267.2,
-      "n": 6,
-      "capacity_calls_per_month": 6903073.28605201,
+      "input_tokens": 91.2,
+      "output_tokens": 1.0,
+      "server_ms": 3676.2,
+      "latency_ms": 1661.82,
+      "n": 19,
+      "capacity_calls_per_month": 714868.6143300147,
       "frontier_usd_per_1k": {
-        "claude-haiku-5-5": 0.09093333333333334,
-        "claude-sonnet-5-5": 1.8186666666666664,
-        "claude-opus-5-5": 3.637333333333333
+        "claude-haiku-5-5": 0.09062,
+        "claude-sonnet-5-5": 1.8124,
+        "claude-opus-5-5": 3.6248
       },
       "self_hosted_usd_per_1k_at_full_use": {
         "free": 0.0,
-        "starter": 0.0010140410958904109,
-        "standard": 0.003621575342465753
+        "starter": 0.009792009132420091,
+        "standard": 0.034971461187214614
       },
       "breakeven_calls_per_month": {
-        "starter vs claude-haiku-5-5": 76979.47214076246,
-        "starter vs claude-sonnet-5-5": 3848.9736070381236,
-        "starter vs claude-opus-5-5": 1924.4868035190618,
-        "standard vs claude-haiku-5-5": 274926.6862170088,
-        "standard vs claude-sonnet-5-5": 13746.334310850441,
-        "standard vs claude-opus-5-5": 6873.167155425221
+        "starter vs claude-haiku-5-5": 77245.64113882145,
+        "starter vs claude-sonnet-5-5": 3862.2820569410724,
+        "starter vs claude-opus-5-5": 1931.1410284705362,
+        "standard vs claude-haiku-5-5": 275877.2897815052,
+        "standard vs claude-sonnet-5-5": 13793.864489075258,
+        "standard vs claude-opus-5-5": 6896.932244537629
       }
     },
     {
       "model": "gpt2",
       "archetype": "decoder (continue)",
-      "input_tokens": 91.0,
-      "output_tokens": 40,
-      "server_ms": 1450.2,
-      "latency_ms": 1349.7,
-      "n": 6,
-      "capacity_calls_per_month": 1812163.8394704177,
+      "input_tokens": 87.9,
+      "output_tokens": 40.0,
+      "server_ms": 11600.29,
+      "latency_ms": 10710.15,
+      "n": 19,
+      "capacity_calls_per_month": 226546.06048641886,
       "frontier_usd_per_1k": {
-        "claude-haiku-5-5": 0.1101,
-        "claude-sonnet-5-5": 2.202,
-        "claude-opus-5-5": 4.404
+        "claude-haiku-5-5": 0.10979,
+        "claude-sonnet-5-5": 2.1958,
+        "claude-opus-5-5": 4.3916
       },
       "self_hosted_usd_per_1k_at_full_use": {
         "free": 0.0,
-        "starter": 0.003862785388127854,
-        "standard": 0.013795662100456622
+        "starter": 0.03089879375951294,
+        "standard": 0.11035283485540336
       },
       "breakeven_calls_per_month": {
-        "starter vs claude-haiku-5-5": 63578.56494096276,
-        "starter vs claude-sonnet-5-5": 3178.928247048138,
-        "starter vs claude-opus-5-5": 1589.464123524069,
-        "standard vs claude-haiku-5-5": 227066.30336058128,
-        "standard vs claude-sonnet-5-5": 11353.315168029065,
-        "standard vs claude-opus-5-5": 5676.657584014532
+        "starter vs claude-haiku-5-5": 63758.08361417251,
+        "starter vs claude-sonnet-5-5": 3187.904180708625,
+        "starter vs claude-opus-5-5": 1593.9520903543125,
+        "standard vs claude-haiku-5-5": 227707.44147918752,
+        "standard vs claude-sonnet-5-5": 11385.372073959375,
+        "standard vs claude-opus-5-5": 5692.686036979688
       }
     },
     {
       "model": "t5",
       "archetype": "encoder-decoder (summarize)",
-      "input_tokens": 103.66666666666667,
-      "output_tokens": 43,
-      "server_ms": 1489.9,
-      "latency_ms": 1407.6,
-      "n": 6,
-      "capacity_calls_per_month": 1763876.770253037,
+      "input_tokens": 100.4,
+      "output_tokens": 42.5,
+      "server_ms": 12480.55,
+      "latency_ms": 11069.38,
+      "n": 19,
+      "capacity_calls_per_month": 210567.64325290153,
       "frontier_usd_per_1k": {
-        "claude-haiku-5-5": 0.11286666666666667,
-        "claude-sonnet-5-5": 2.2573333333333334,
-        "claude-opus-5-5": 4.514666666666667
+        "claude-haiku-5-5": 0.11229,
+        "claude-sonnet-5-5": 2.2458,
+        "claude-opus-5-5": 4.4916
       },
       "self_hosted_usd_per_1k_at_full_use": {
         "free": 0.0,
-        "starter": 0.003968531202435312,
-        "standard": 0.014173325722983257
+        "starter": 0.03324347412480974,
+        "standard": 0.11872669330289193
       },
       "breakeven_calls_per_month": {
-        "starter vs claude-haiku-5-5": 62020.08269344359,
-        "starter vs claude-sonnet-5-5": 3101.0041346721796,
-        "starter vs claude-opus-5-5": 1550.5020673360898,
-        "standard vs claude-haiku-5-5": 221500.29533372712,
-        "standard vs claude-sonnet-5-5": 11075.014766686356,
-        "standard vs claude-opus-5-5": 5537.507383343178
+        "starter vs claude-haiku-5-5": 62338.58758571556,
+        "starter vs claude-sonnet-5-5": 3116.929379285778,
+        "starter vs claude-opus-5-5": 1558.464689642889,
+        "standard vs claude-haiku-5-5": 222637.812806127,
+        "standard vs claude-sonnet-5-5": 11131.89064030635,
+        "standard vs claude-opus-5-5": 5565.945320153175
       }
     }
   ]
