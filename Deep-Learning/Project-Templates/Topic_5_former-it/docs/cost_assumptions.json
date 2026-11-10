@@ -1,0 +1,24 @@
+{
+  "_note": "Every number here is an input to scripts/cost_compare.py. Prices change; re-check the sources before quoting the result.",
+  "as_of": "2026-11-10",
+  "frontier_llm": {
+    "source": "Anthropic API list prices (platform.claude.com pricing), standard tier, USD per million tokens",
+    "models": {
+      "claude-haiku-5-5": {"input_per_mtok": 0.10, "output_per_mtok": 0.50},
+      "claude-sonnet-5-5": {"input_per_mtok": 2.00, "output_per_mtok": 10.00},
+      "claude-opus-5-5": {"input_per_mtok": 4.00, "output_per_mtok": 20.00}
+    },
+    "prompt_overhead_tokens": 60,
+    "reasoning_tokens_per_call": 150,
+    "_assumptions": "A frontier model needs an instruction (prompt_overhead_tokens) and, on current models, spends some billed reasoning tokens even at low effort (reasoning_tokens_per_call, an estimate). Token counts from our tokenizers are used as a proxy for the frontier tokenizer (roughly +-30%)."
+  },
+  "self_hosted": {
+    "source": "Render compute plans (render.com/docs/compute-plans for CPU/RAM). Monthly prices are the list prices at the time of writing: VERIFY on render.com/pricing before quoting.",
+    "plans": {
+      "free":     {"cpu": 0.1, "ram_gb": 0.5, "usd_per_month": 0,  "notes": "spins down after 15 min idle (~1 min to wake); 750 instance-hours/month per workspace"},
+      "starter":  {"cpu": 0.5, "ram_gb": 0.5, "usd_per_month": 7,  "notes": "always on; same memory ceiling as free"},
+      "standard": {"cpu": 1.0, "ram_gb": 2.0, "usd_per_month": 25, "notes": "always on; all three checkpoints fit in memory (no cold swaps)"}
+    },
+    "hours_per_month": 730
+  }
+}

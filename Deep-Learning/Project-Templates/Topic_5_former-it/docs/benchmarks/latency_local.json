@@ -1,0 +1,663 @@
+{
+  "base_url": "http://127.0.0.1:8765",
+  "rounds": 2,
+  "started_health": {
+    "status": "degraded",
+    "model_loader": {
+      "max_resident": 1,
+      "resident": [],
+      "available": [
+        "bert",
+        "gpt2",
+        "t5"
+      ],
+      "loads": 0,
+      "evictions": 0,
+      "last_error": null,
+      "encoder_block_loaded": true,
+      "ok": true
+    },
+    "database": {
+      "ok": false,
+      "configured": false,
+      "latency_ms": null,
+      "error": "SUPABASE_URL / SUPABASE_SERVICE_KEY not set"
+    }
+  },
+  "version": {
+    "api": "1.0.0",
+    "git_sha": "local",
+    "python": "3.12.10",
+    "torch": "2.4.1+cpu",
+    "transformers": "4.44.2",
+    "dtype": "float32",
+    "models": {
+      "bert": {
+        "archetype": "encoder",
+        "task": "fill-mask",
+        "checkpoint": "distilbert-base-uncased",
+        "revision": "12040accade4e8a0f71eabdb258fecc2e7e948be",
+        "loaded_commit": null,
+        "params": null
+      },
+      "gpt2": {
+        "archetype": "decoder",
+        "task": "continue",
+        "checkpoint": "distilgpt2",
+        "revision": "2290a62682d06624634c1f46a6ad5be0f47f38aa",
+        "loaded_commit": null,
+        "params": null
+      },
+      "t5": {
+        "archetype": "encoder-decoder",
+        "task": "summarize",
+        "checkpoint": "t5-small",
+        "revision": "df1b051c49625cf57a3d0d8d3863ed4d13564fe4",
+        "loaded_commit": null,
+        "params": null
+      }
+    },
+    "encoder_block": {
+      "source": "src/transformer.py",
+      "task": "word-level palindrome detection (canonical first-appearance ids)",
+      "architecture": {
+        "d_model": 32,
+        "n_heads": 4,
+        "d_ff": 64,
+        "n_layers": 2
+      },
+      "params": 17634,
+      "test_accuracy": 0.9572,
+      "weights_sha256": "4807bf7f17000d802f1cfed57322638e0a7c9f9dc3d60c57c1fb249f57869ed2"
+    }
+  },
+  "summary": {
+    "grouped": {
+      "encoder_block": {
+        "n": 6,
+        "n_cold": 0,
+        "median_latency_ms": 1.3,
+        "median_warm_latency_ms": 1.3,
+        "median_load_ms_when_cold": null,
+        "median_total_ms": 3.2,
+        "median_client_rtt_ms": 6.5,
+        "mean_output_tokens": 1
+      },
+      "bert": {
+        "n": 6,
+        "n_cold": 2,
+        "median_latency_ms": 267.2,
+        "median_warm_latency_ms": 290.1,
+        "median_load_ms_when_cold": 1106.2,
+        "median_total_ms": 380.7,
+        "median_client_rtt_ms": 383.9,
+        "mean_output_tokens": 1
+      },
+      "gpt2": {
+        "n": 6,
+        "n_cold": 2,
+        "median_latency_ms": 1349.7,
+        "median_warm_latency_ms": 1309.8,
+        "median_load_ms_when_cold": 227.1,
+        "median_total_ms": 1450.2,
+        "median_client_rtt_ms": 1453.9,
+        "mean_output_tokens": 40
+      },
+      "t5": {
+        "n": 6,
+        "n_cold": 2,
+        "median_latency_ms": 1407.6,
+        "median_warm_latency_ms": 1583.8,
+        "median_load_ms_when_cold": 250.4,
+        "median_total_ms": 1489.9,
+        "median_client_rtt_ms": 1494.2,
+        "mean_output_tokens": 43
+      }
+    },
+    "interleaved": {
+      "bert": {
+        "n": 6,
+        "n_cold": 6,
+        "median_latency_ms": 258.4,
+        "median_warm_latency_ms": null,
+        "median_load_ms_when_cold": 208.6,
+        "median_total_ms": 669.1,
+        "median_client_rtt_ms": 672.6,
+        "mean_output_tokens": 1
+      },
+      "gpt2": {
+        "n": 6,
+        "n_cold": 6,
+        "median_latency_ms": 1379.4,
+        "median_warm_latency_ms": null,
+        "median_load_ms_when_cold": 141.9,
+        "median_total_ms": 1641.9,
+        "median_client_rtt_ms": 1645.0,
+        "mean_output_tokens": 40
+      },
+      "t5": {
+        "n": 6,
+        "n_cold": 6,
+        "median_latency_ms": 1736.6,
+        "median_warm_latency_ms": null,
+        "median_load_ms_when_cold": 203.0,
+        "median_total_ms": 2131.7,
+        "median_client_rtt_ms": 2135.2,
+        "mean_output_tokens": 43
+      }
+    }
+  },
+  "calls": {
+    "grouped": [
+      {
+        "model": "encoder_block",
+        "latency_ms": 1.97,
+        "load_ms": 0.0,
+        "total_ms": 4.06,
+        "cold_start": false,
+        "input_tokens": 6,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 7.8
+      },
+      {
+        "model": "encoder_block",
+        "latency_ms": 0.81,
+        "load_ms": 0.0,
+        "total_ms": 2.06,
+        "cold_start": false,
+        "input_tokens": 5,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 5.8
+      },
+      {
+        "model": "encoder_block",
+        "latency_ms": 1.16,
+        "load_ms": 0.0,
+        "total_ms": 2.9,
+        "cold_start": false,
+        "input_tokens": 6,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 6.2
+      },
+      {
+        "model": "bert",
+        "latency_ms": 285.02,
+        "load_ms": 1994.22,
+        "total_ms": 2279.65,
+        "cold_start": true,
+        "input_tokens": 35,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 2284.3
+      },
+      {
+        "model": "bert",
+        "latency_ms": 200.21,
+        "load_ms": 0.0,
+        "total_ms": 200.66,
+        "cold_start": false,
+        "input_tokens": 80,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 204.5
+      },
+      {
+        "model": "bert",
+        "latency_ms": 380.65,
+        "load_ms": 0.0,
+        "total_ms": 381.13,
+        "cold_start": false,
+        "input_tokens": 168,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 384.1
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1841.19,
+        "load_ms": 278.18,
+        "total_ms": 2268.44,
+        "cold_start": true,
+        "input_tokens": 33,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 2275.3
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1318.19,
+        "load_ms": 0.0,
+        "total_ms": 1318.5,
+        "cold_start": false,
+        "input_tokens": 76,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1322.4
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1581.52,
+        "load_ms": 0.0,
+        "total_ms": 1581.84,
+        "cold_start": false,
+        "input_tokens": 164,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1585.4
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1004.37,
+        "load_ms": 298.61,
+        "total_ms": 1487.64,
+        "cold_start": true,
+        "input_tokens": 38,
+        "output_tokens": 30,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1493.2
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1323.67,
+        "load_ms": 0.0,
+        "total_ms": 1323.9,
+        "cold_start": false,
+        "input_tokens": 90,
+        "output_tokens": 50,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1327.4
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1491.59,
+        "load_ms": 0.0,
+        "total_ms": 1492.09,
+        "cold_start": false,
+        "input_tokens": 183,
+        "output_tokens": 49,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1495.2
+      },
+      {
+        "model": "encoder_block",
+        "latency_ms": 1.45,
+        "load_ms": 0.0,
+        "total_ms": 4.11,
+        "cold_start": false,
+        "input_tokens": 6,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 7.3
+      },
+      {
+        "model": "encoder_block",
+        "latency_ms": 1.75,
+        "load_ms": 0.0,
+        "total_ms": 3.59,
+        "cold_start": false,
+        "input_tokens": 5,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 6.7
+      },
+      {
+        "model": "encoder_block",
+        "latency_ms": 0.95,
+        "load_ms": 0.0,
+        "total_ms": 2.81,
+        "cold_start": false,
+        "input_tokens": 6,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 5.4
+      },
+      {
+        "model": "bert",
+        "latency_ms": 249.32,
+        "load_ms": 218.16,
+        "total_ms": 634.48,
+        "cold_start": true,
+        "input_tokens": 35,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 637.3
+      },
+      {
+        "model": "bert",
+        "latency_ms": 197.72,
+        "load_ms": 0.0,
+        "total_ms": 198.03,
+        "cold_start": false,
+        "input_tokens": 80,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 201.4
+      },
+      {
+        "model": "bert",
+        "latency_ms": 379.95,
+        "load_ms": 0.0,
+        "total_ms": 380.29,
+        "cold_start": false,
+        "input_tokens": 168,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 383.6
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1381.13,
+        "load_ms": 176.01,
+        "total_ms": 1723.31,
+        "cold_start": true,
+        "input_tokens": 33,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1726.6
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1256.91,
+        "load_ms": 0.0,
+        "total_ms": 1257.17,
+        "cold_start": false,
+        "input_tokens": 76,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1260.1
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1301.42,
+        "load_ms": 0.0,
+        "total_ms": 1301.67,
+        "cold_start": false,
+        "input_tokens": 164,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1304.7
+      },
+      {
+        "model": "t5",
+        "latency_ms": 969.83,
+        "load_ms": 202.11,
+        "total_ms": 1312.22,
+        "cold_start": true,
+        "input_tokens": 38,
+        "output_tokens": 30,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1316.3
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1675.92,
+        "load_ms": 0.0,
+        "total_ms": 1676.2,
+        "cold_start": false,
+        "input_tokens": 90,
+        "output_tokens": 50,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1679.3
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1886.35,
+        "load_ms": 0.0,
+        "total_ms": 1886.65,
+        "cold_start": false,
+        "input_tokens": 183,
+        "output_tokens": 49,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1890.4
+      }
+    ],
+    "interleaved": [
+      {
+        "model": "bert",
+        "latency_ms": 253.34,
+        "load_ms": 250.45,
+        "total_ms": 677.06,
+        "cold_start": true,
+        "input_tokens": 35,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 680.5
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1386.61,
+        "load_ms": 162.93,
+        "total_ms": 1710.22,
+        "cold_start": true,
+        "input_tokens": 33,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1714.8
+      },
+      {
+        "model": "t5",
+        "latency_ms": 915.93,
+        "load_ms": 206.97,
+        "total_ms": 1312.9,
+        "cold_start": true,
+        "input_tokens": 38,
+        "output_tokens": 30,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1315.9
+      },
+      {
+        "model": "bert",
+        "latency_ms": 250.44,
+        "load_ms": 175.01,
+        "total_ms": 565.81,
+        "cold_start": true,
+        "input_tokens": 80,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 568.7
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1166.79,
+        "load_ms": 127.72,
+        "total_ms": 1430.1,
+        "cold_start": true,
+        "input_tokens": 76,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1433.1
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1709.03,
+        "load_ms": 219.76,
+        "total_ms": 2074.65,
+        "cold_start": true,
+        "input_tokens": 90,
+        "output_tokens": 50,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 2077.7
+      },
+      {
+        "model": "bert",
+        "latency_ms": 530.97,
+        "load_ms": 239.77,
+        "total_ms": 950.64,
+        "cold_start": true,
+        "input_tokens": 168,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 953.9
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1514.36,
+        "load_ms": 185.36,
+        "total_ms": 1857.85,
+        "cold_start": true,
+        "input_tokens": 164,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1860.8
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1863.58,
+        "load_ms": 180.98,
+        "total_ms": 2188.67,
+        "cold_start": true,
+        "input_tokens": 183,
+        "output_tokens": 49,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 2192.7
+      },
+      {
+        "model": "bert",
+        "latency_ms": 245.64,
+        "load_ms": 243.83,
+        "total_ms": 661.13,
+        "cold_start": true,
+        "input_tokens": 35,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 664.7
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1231.72,
+        "load_ms": 155.3,
+        "total_ms": 1554.7,
+        "cold_start": true,
+        "input_tokens": 33,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1558.6
+      },
+      {
+        "model": "t5",
+        "latency_ms": 916.21,
+        "load_ms": 198.95,
+        "total_ms": 1257.59,
+        "cold_start": true,
+        "input_tokens": 38,
+        "output_tokens": 30,
+        "logged": false,
+        "size": "short",
+        "client_rtt_ms": 1260.4
+      },
+      {
+        "model": "bert",
+        "latency_ms": 263.48,
+        "load_ms": 165.35,
+        "total_ms": 574.41,
+        "cold_start": true,
+        "input_tokens": 80,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 577.9
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1390.78,
+        "load_ms": 128.55,
+        "total_ms": 1657.53,
+        "cold_start": true,
+        "input_tokens": 76,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 1661.1
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1764.11,
+        "load_ms": 285.75,
+        "total_ms": 2235.35,
+        "cold_start": true,
+        "input_tokens": 90,
+        "output_tokens": 50,
+        "logged": false,
+        "size": "medium",
+        "client_rtt_ms": 2238.8
+      },
+      {
+        "model": "bert",
+        "latency_ms": 391.8,
+        "load_ms": 177.49,
+        "total_ms": 710.18,
+        "cold_start": true,
+        "input_tokens": 168,
+        "output_tokens": 1,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 712.8
+      },
+      {
+        "model": "gpt2",
+        "latency_ms": 1372.14,
+        "load_ms": 119.27,
+        "total_ms": 1626.27,
+        "cold_start": true,
+        "input_tokens": 164,
+        "output_tokens": 40,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 1629.0
+      },
+      {
+        "model": "t5",
+        "latency_ms": 1892.72,
+        "load_ms": 185.47,
+        "total_ms": 2219.98,
+        "cold_start": true,
+        "input_tokens": 183,
+        "output_tokens": 49,
+        "logged": false,
+        "size": "long",
+        "client_rtt_ms": 2223.4
+      }
+    ]
+  },
+  "benchmarks_view": {
+    "error": 503
+  }
+}
