@@ -1,0 +1,119 @@
+{
+  "task": "word-level palindrome detection (canonical first-appearance ids)",
+  "architecture": {
+    "d_model": 32,
+    "n_heads": 4,
+    "d_ff": 64,
+    "n_layers": 2
+  },
+  "params": 17634,
+  "max_len": 12,
+  "train": {
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.002,
+    "train_size": 40000,
+    "test_size": 4000,
+    "seed": 0,
+    "seconds": 139.3
+  },
+  "test": {
+    "accuracy": 0.9572,
+    "accuracy_by_length": {
+      "2": 1.0,
+      "3": 1.0,
+      "4": 1.0,
+      "5": 0.9842,
+      "6": 0.9684,
+      "7": 0.968,
+      "8": 0.9337,
+      "9": 0.9372,
+      "10": 0.921,
+      "11": 0.9101,
+      "12": 0.9056
+    }
+  },
+  "history": [
+    {
+      "step": 250,
+      "loss": 0.64689,
+      "test_acc": 0.6077
+    },
+    {
+      "step": 500,
+      "loss": 0.59171,
+      "test_acc": 0.6265
+    },
+    {
+      "step": 750,
+      "loss": 0.42965,
+      "test_acc": 0.8018
+    },
+    {
+      "step": 1000,
+      "loss": 0.35596,
+      "test_acc": 0.812
+    },
+    {
+      "step": 1250,
+      "loss": 0.27916,
+      "test_acc": 0.848
+    },
+    {
+      "step": 1500,
+      "loss": 0.33477,
+      "test_acc": 0.7548
+    },
+    {
+      "step": 1750,
+      "loss": 0.16481,
+      "test_acc": 0.8813
+    },
+    {
+      "step": 2000,
+      "loss": 0.17298,
+      "test_acc": 0.895
+    },
+    {
+      "step": 2250,
+      "loss": 0.2016,
+      "test_acc": 0.9115
+    },
+    {
+      "step": 2500,
+      "loss": 0.19091,
+      "test_acc": 0.928
+    },
+    {
+      "step": 2750,
+      "loss": 0.17833,
+      "test_acc": 0.927
+    },
+    {
+      "step": 3000,
+      "loss": 0.197,
+      "test_acc": 0.9405
+    },
+    {
+      "step": 3250,
+      "loss": 0.1087,
+      "test_acc": 0.946
+    },
+    {
+      "step": 3500,
+      "loss": 0.16699,
+      "test_acc": 0.9538
+    },
+    {
+      "step": 3750,
+      "loss": 0.14863,
+      "test_acc": 0.956
+    },
+    {
+      "step": 4000,
+      "loss": 0.23601,
+      "test_acc": 0.9572
+    }
+  ],
+  "weights_sha256": "4807bf7f17000d802f1cfed57322638e0a7c9f9dc3d60c57c1fb249f57869ed2"
+}
