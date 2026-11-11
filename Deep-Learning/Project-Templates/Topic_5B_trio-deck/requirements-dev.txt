@@ -1,0 +1,3 @@
+# Local development + CI for TrioDeck. Streamlit Cloud installs only ui/requirements.txt.
+-r ui/requirements.txt
+pytest==8.3.3

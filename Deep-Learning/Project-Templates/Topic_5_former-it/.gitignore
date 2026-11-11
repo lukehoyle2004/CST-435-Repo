@@ -17,3 +17,6 @@ venv/
 
 # Hugging Face model cache (Render fills it at build time)
 .hf_cache/
+
+# Personal video script -- kept local, never committed
+docs/VIDEO_SCRIPT.md

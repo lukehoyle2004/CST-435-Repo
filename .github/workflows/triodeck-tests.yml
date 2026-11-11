@@ -1,0 +1,39 @@
+# Runs the TrioDeck (Topic 5B) suite on every push and pull request that touches
+# the interface. No secrets and no network: the Streamlit script runs headlessly
+# (AppTest) against a fake TrioFormer API transport and a read-only fake Supabase,
+# covering all seven tabs, both latency clocks, cold start, outage and recovery,
+# and a static check of the tier boundary (no model code, no SQL writes, no keys).
+name: TrioDeck tests
+
+on:
+  push:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_5B_trio-deck/**"
+      - ".github/workflows/triodeck-tests.yml"
+  pull_request:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_5B_trio-deck/**"
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Deep-Learning/Project-Templates/Topic_5B_trio-deck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # Streamlit Community Cloud's default
+          cache: pip
+          cache-dependency-path: |
+            Deep-Learning/Project-Templates/Topic_5B_trio-deck/ui/requirements.txt
+            Deep-Learning/Project-Templates/Topic_5B_trio-deck/requirements-dev.txt
+
+      - name: Install dependencies (no torch, by design)
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest -q

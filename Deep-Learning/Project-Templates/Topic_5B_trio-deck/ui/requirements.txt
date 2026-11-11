@@ -1,0 +1,7 @@
+# TrioDeck UI tier (Streamlit Community Cloud).
+# A thin client on purpose: no torch, no transformers, no model code.
+# Inference = HTTPS to the TrioFormer API on Render; data = anon-key SELECTs only.
+streamlit==1.38.0
+requests==2.32.3
+pandas==2.2.2
+supabase==2.7.4
