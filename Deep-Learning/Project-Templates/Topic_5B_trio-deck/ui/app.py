@@ -167,6 +167,15 @@ def two_columns(sidebar_key: str):
     return main
 
 
+def one_line(text: str) -> str:
+    """Collapse whitespace so Markdown emphasis survives GPT-2's leading blank lines.
+
+    GPT-2 continuations often start with three newlines, which would split a **bold**
+    span across paragraphs and leave stray asterisks on screen.
+    """
+    return " ".join(text.split()).replace("*", "\\*")
+
+
 def md_table(header: list[str], rows: list[tuple]) -> str:
     """A Markdown table: unlike st.table, st.markdown typesets the $...$ math in its cells."""
     lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
@@ -315,7 +324,7 @@ with tabs[3]:
         item = received("gpt2")
         if item:
             d = item["result"].data
-            st.markdown(f"> {text}**{d['continuation']}**")
+            st.markdown(f"> {one_line(text)} **{one_line(d['continuation']) or '(no new words)'}**")
             st.caption("Bold = generated. GPT-2 writes fluently and invents details; nothing here is checked.")
             latency_panel(item["result"])
 
@@ -383,7 +392,7 @@ with tabs[5]:
                                     f"({d['candidates'][0]['score']:.0%}); then "
                                     + ", ".join(c["token"] for c in d["candidates"][1:4]))
                     elif model == "gpt2":
-                        st.markdown(f"…**{d['continuation'].strip()}**")
+                        st.markdown(f"…**{one_line(d['continuation']) or '(no new words)'}**")
                     else:
                         st.markdown(d["summary"])
                     latency_panel(r, compact=True)

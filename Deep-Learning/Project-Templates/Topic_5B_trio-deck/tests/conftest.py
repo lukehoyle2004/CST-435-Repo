@@ -61,7 +61,7 @@ ROUTES = {
     ("POST", "/encoder_attention"): lambda b: (200, _encoder(b)),
     ("POST", "/bert_fillmask"): _bert,
     ("POST", "/gpt2_continue"): lambda b: (200, {**_meta("gpt2", "decoder", "continue", 10460.0, n_out=40),
-                                                 "continuation": " The plan was approved in November."}),
+                                                 "continuation": "\n\n\nThe plan was approved in November."}),
     ("POST", "/t5_summarize"): lambda b: (200, {**_meta("t5", "encoder-decoder", "summarize", 12570.0, n_out=42),
                                                 "summary": "the council voted to expand bike lanes."}),
     ("GET", "/benchmarks"): lambda b: (200, {"refreshed": True, "rows": []}),

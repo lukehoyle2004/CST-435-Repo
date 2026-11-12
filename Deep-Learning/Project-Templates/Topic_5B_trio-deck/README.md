@@ -111,7 +111,7 @@ settings → Secrets**, paste the three lines from `secrets.toml.example` with t
 .venv/Scripts/python -m pytest -q
 ```
 
-28 tests run the real Streamlit script headlessly (`streamlit.testing.v1.AppTest`) against a fake
+29 tests run the real Streamlit script headlessly (`streamlit.testing.v1.AppTest`) against a fake
 TrioFormer API and a read-only fake Supabase. They cover all seven tabs, both latency clocks, the
 positional-encoding toggle, cold start, outage, recovery without a reload, Supabase being
 unreadable, the client's failure classification, and the tier-boundary checks.

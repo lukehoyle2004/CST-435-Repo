@@ -167,3 +167,10 @@ def test_compare_uses_the_gpt2_tabs_token_setting(fake_api, fake_db, monkeypatch
     gpt = [p for path, p in sent if path == "/gpt2_continue"]
     assert gpt and gpt[-1]["max_new_tokens"] == 5
     assert "GPT-2 writes 5 new tokens here" in text_of(at)
+
+
+def test_gpt2_leading_newlines_do_not_break_the_bold_text(fake_api, fake_db):
+    at = press(new_app(), "gpt_go")
+    md = [str(m.value) for m in at.markdown if "approved in November" in str(m.value)]
+    assert md and md[0].endswith("**The plan was approved in November.**")
+    assert "\n" not in md[0]
