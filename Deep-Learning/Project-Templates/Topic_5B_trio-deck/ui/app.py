@@ -162,6 +162,13 @@ def two_columns(sidebar_key: str):
     return main
 
 
+def md_table(header: list[str], rows: list[tuple]) -> str:
+    """A Markdown table: unlike st.table, st.markdown typesets the $...$ math in its cells."""
+    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    lines += ["| " + " | ".join(str(c).replace("|", "\\|") for c in row) + " |" for row in rows]
+    return "\n".join(lines)
+
+
 def received(key: str) -> dict | None:
     item = st.session_state.get(key)
     if item:
@@ -194,7 +201,7 @@ with tabs[0]:
         st.latex(C.MHA)
         st.markdown(C.MHA_WHY)
         st.markdown("**4. Shapes, step by step** (as implemented in `src/transformer.py`):")
-        st.table(pd.DataFrame(C.SHAPES, columns=["Step", "Shape", "What happens"]).set_index("Step"))
+        st.markdown(md_table(["Step", "Shape", "What happens"], C.SHAPES))
         st.markdown("**5. The encoder block** wraps attention and a two-layer MLP in residual "
                     "connections, normalising first (pre-norm):")
         st.latex(C.BLOCK)
@@ -210,9 +217,8 @@ with tabs[0]:
         st.markdown("Because rotations compose, $R_{\\Theta,m}^{\\top}R_{\\Theta,n}=R_{\\Theta,n-m}$: the "
                     "score between positions $m$ and $n$ depends on their **distance**, not on where "
                     "they are.")
-        st.table(pd.DataFrame(C.PE_TABLE, columns=["Scheme", "How it enters", "What attention sees",
-                                                   "Extra parameters", "Longer inputs than trained",
-                                                   "Used by"]).set_index("Scheme"))
+        st.markdown(md_table(["Scheme", "How it enters", "What attention sees", "Extra parameters",
+                              "Longer inputs than trained", "Used by"], C.PE_TABLE))
         st.subheader("Why rotary encodings dominate modern LLMs")
         for point in C.ROPE_WHY:
             st.markdown(f"- {point}")

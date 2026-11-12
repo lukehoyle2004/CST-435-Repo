@@ -66,7 +66,11 @@ def test_concepts_tab_typesets_the_derivation(fake_api, fake_db):
     latex = " ".join(str(e.value) for e in at.latex)
     assert r"\operatorname{Concat}" in latex and r"\sqrt{d_k}" in latex and "R_{\\Theta" in latex
     assert "Why rotary encodings dominate modern LLMs" in text_of(at)
-    assert len(at.table) == 2                        # shapes table + positional-encoding comparison
+    md = "\n".join(str(m.value) for m in at.markdown)
+    # Both tables are Markdown (so their $...$ math is typeset), not st.table (which shows raw $).
+    assert len(at.table) == 0
+    assert "| Step | Shape | What happens |" in md and "| Scheme | How it enters |" in md
+    assert "$[B, h, T, T]$" in md and "Rotary (RoPE, 2021)" in md
 
 
 def test_encoder_block_with_and_without_positional_encoding(fake_api, fake_db):
