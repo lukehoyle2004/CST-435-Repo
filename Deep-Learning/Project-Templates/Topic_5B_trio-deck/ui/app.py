@@ -136,9 +136,11 @@ def latency_panel(r: Result, compact: bool = False) -> None:
     # Compact panels sit inside the Compare tab's per-model columns; Streamlit allows only one
     # level of nested columns, so they stack vertically instead.
     cols = [st.container(), st.container()] if compact else st.columns(4)
-    cols[0].metric("Server-side model time (latency_ms)", f"{d['latency_ms']:,.0f} ms",
+    server_label = "Server model time" if compact else "Server-side model time (latency_ms)"
+    e2e_label = "End-to-end wait" if compact else "End-to-end wait (this app ↔ Render)"
+    cols[0].metric(server_label, f"{d['latency_ms']:,.0f} ms",
                    help="Measured by the API on Render: tokenise → model → decode. Logged to Supabase.")
-    cols[1].metric("End-to-end wait (this app ↔ Render)", f"{r.e2e_ms:,.0f} ms",
+    cols[1].metric(e2e_label, f"{r.e2e_ms:,.0f} ms",
                    help="Measured by TrioDeck: request sent → response received. Includes everything below.")
     if not compact:
         cols[2].metric("Checkpoint load on the server (load_ms)", f"{d['load_ms']:,.0f} ms",
@@ -146,6 +148,9 @@ def latency_panel(r: Result, compact: bool = False) -> None:
                             "already loaded). The free server holds one model at a time.")
         cols[3].metric("Network + proxy (end-to-end − server total)", f"{gap:,.0f} ms",
                        help="Transit between Streamlit Cloud and Render, Render's proxy and TLS.")
+    if compact:
+        st.caption("Server model time = `latency_ms` measured on Render; end-to-end wait = measured by "
+                   "this app, Streamlit Cloud ↔ Render.")
     st.caption(f"Server total (total_ms, includes load and any wait for the model lock): "
                f"{d['total_ms']:,.0f} ms · cold start: {'yes' if d['cold_start'] else 'no'} · "
                f"logged to Supabase: {'yes' if d['logged'] else 'NO (database unreachable)'} · "
@@ -427,7 +432,7 @@ with tabs[6]:
                 h = pd.DataFrame(item["hourly"])
                 h["hour"] = pd.to_datetime(h["hour"])
                 st.altair_chart(alt.Chart(h).mark_line(point=True).encode(
-                    x=alt.X("hour:T", title="hour (UTC)"),
+                    x=alt.X("hour:T", title="hour (your local time)"),
                     y=alt.Y("p50_latency_ms:Q", title="median model time (ms, log scale)",
                             scale=alt.Scale(type="log")),
                     color=alt.Color("model:N", scale=MODEL_COLORS, title=None),

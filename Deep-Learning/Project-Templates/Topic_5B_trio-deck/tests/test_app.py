@@ -107,8 +107,9 @@ def test_compare_renders_three_archetypes_with_per_model_latency(fake_api, fake_
     page = text_of(at)
     for name in ("BERT (encoder)", "GPT-2 (decoder)", "T5 (encoder-decoder)"):
         assert name in page
-    assert page.count("Server-side model time (latency_ms)") == 3
-    assert page.count("End-to-end wait (this app ↔ Render)") == 3
+    labels = [m.label for m in at.metric]
+    assert labels.count("Server model time") == 3 and labels.count("End-to-end wait") == 3
+    assert page.count("measured by this app, Streamlit Cloud ↔ Render") == 3
     assert "run one after another" in page
     models = {c[1] for c in fake_api.calls}
     assert {"/bert_fillmask", "/gpt2_continue", "/t5_summarize"} <= models

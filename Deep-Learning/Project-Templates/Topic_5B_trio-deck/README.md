@@ -7,7 +7,7 @@ benchmarks view over time.
 
 | | Link |
 |---|---|
-| **TrioDeck (Streamlit Community Cloud)** | *(fill in after deploying)* |
+| **TrioDeck (Streamlit Community Cloud)** | https://triodeck-luke.streamlit.app |
 | **GitHub (this interface)** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_5B_trio-deck |
 | **Team repository / service it targets** | Product 5 "TrioFormer": [`Topic_5_former-it`](../Topic_5_former-it) in the same repository |
 | **Render API it calls** | https://trioformer-api.onrender.com (docs at `/docs`) |
@@ -119,4 +119,24 @@ unreadable, the client's failure classification, and the tier-boundary checks.
 
 ## Deployment reflection
 
-*(Written after deploying, from measurements taken through the deployed app.)*
+**Measurement.** Render's free instance sleeps after 15 idle minutes. Waking it took 93 s
+before `/healthz` answered, and the first call to each model then paid a checkpoint load on
+top (19.3 s for BERT). Through the deployed Compare tab, BERT's server-side `latency_ms` was
+4,939 ms but the app waited 24,442 ms; GPT-2 took 124,331 ms against 127,673 ms; T5 took
+9,622 ms against 13,773 ms. The gap is not the model. Network transit and Render's proxy
+account for only 80–144 ms. The rest is loading checkpoints, because only one model fits in
+512 MB, plus any queueing behind the model lock. Even the server time is not purely the
+model's: the same 20-token GPT-2 call took 4.4 s at 21:33 and 124 s at 21:51 the same day,
+as Render throttled the shared 0.1-CPU instance.
+
+**Architecture.** Splitting the tiers made the interface harder to build. It has to tell a
+cold start from an outage, it cannot run the three models in parallel on one small server,
+and it needs three deployments and their secrets kept in step. In return, the interface holds
+no model and no write key. It can be public with only an anon key that reads two aggregate
+views, and any classmate's interface can call the same logged service.
+
+**Worldview.** The number easiest to hide is GPT-2's 124,331 ms. A demo shown only at the
+fast hour would make the free-tier stack look cheaper than it is, and the team would build
+its recommendation on a false weight. "A false balance is an abomination to the LORD, but a
+just weight is his delight" (Proverbs 11:1, ESV). A dashboard is a set of scales, so TrioDeck
+shows the slow reading next to the fast one, each labeled with what it measures.

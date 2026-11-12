@@ -16,6 +16,7 @@ show what attention actually computes.
 | **Render API** (interactive docs at `/docs`) | https://trioformer-api.onrender.com (docs: https://trioformer-api.onrender.com/docs) |
 | **Supabase project reference** | `jurmqdwomeiilrlebvuq` (project `trioformer`) → https://jurmqdwomeiilrlebvuq.supabase.co |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_5_former-it |
+| **Interface (Product 5B, TrioDeck)** | https://triodeck-luke.streamlit.app ([source](../Topic_5B_trio-deck)) |
 | **Video walkthrough (Luke Hoyle)** | *(add link)* |
 | **Engineering report (Luke Hoyle)** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |
 | **Individual contribution evidence (Luke Hoyle)** | [docs/CONTRIBUTION.md](docs/CONTRIBUTION.md) |
@@ -119,7 +120,10 @@ The measured row comes from the **Supabase `trio_benchmarks` view** after
 `scripts/benchmark_latency.py --rounds 3` ran against the deployed service (66 logged calls,
 `docs/benchmarks/latency_render.json`). On the free instance (0.1 CPU) everything is 5–8×
 slower than on a laptop (`latency_local.json`), and switching models costs a further 2.5–3.3 s
-per call because only one checkpoint fits in memory. The cost comparison built from these
+per call because only one checkpoint fits in memory. The free tier's CPU is not steady either: on Nov 12 the
+same 20-token GPT-2 call took 4.4 s at 21:33 and 124 s at 21:51 as Render throttled the
+shared 0.1-CPU instance, so treat these numbers as a relative comparison on the same
+hardware, not as a fixed speed. The cost comparison built from these
 numbers is in [docs/benchmarks/cost_comparison.md](docs/benchmarks/cost_comparison.md).
 
 ## The hand-written transformer (`src/transformer.py`)

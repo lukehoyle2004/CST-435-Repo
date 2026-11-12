@@ -45,8 +45,8 @@ SIDEBARS = {
         "**How to read this comparison.** Same paragraph, three jobs. The encoder answers fastest "
         "because it does one pass and writes nothing new; the two writers spend most of their time "
         "producing words one at a time. On this free server only one model fits in memory, so "
-        "asking all three at once also means waiting while models are swapped in — that wait is "
-        "real cost, and the two clocks below show where it goes."
+        "running all three means loading each model in turn — that wait is real cost, and the "
+        "clocks below show where it goes."
     ),
     "latency": (
         "**What this chart is for.** Every answer any model gives is timed on the server and "
