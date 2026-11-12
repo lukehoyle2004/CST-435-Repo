@@ -33,6 +33,10 @@ MODEL_NAMES = {"encoder_block": "Hand-written encoder", "bert": "BERT (encoder)"
                "gpt2": "GPT-2 (decoder)", "t5": "T5 (encoder-decoder)"}
 MODEL_COLORS = alt.Scale(domain=list(MODEL_NAMES), range=["#7a7a7a", "#2a78d6", "#eb6834", "#2e9e5b"])
 AWAKE_FOR_S = 120
+# Short generations by default: on the free 0.1-CPU instance every generated token costs
+# 0.2-0.3 s when healthy (and far more when Render throttles it). Sliders allow longer.
+GPT2_TOKENS = 20
+T5_TOKENS, T5_BEAMS = 40, 1
 # How long to keep polling a sleeping Render instance before calling it an outage.
 WAKE_BUDGET_S = float(os.environ.get("TRIODECK_WAKE_BUDGET_S", "90"))
 WAKE_EVERY_S = float(os.environ.get("TRIODECK_WAKE_EVERY_S", "5"))
@@ -292,7 +296,8 @@ with tabs[3]:
         st.header("GPT-2 — Continue Text")
         text = st.text_area("Beginning of the text", SAMPLE, key="gpt_text", height=120)
         c1, c2 = st.columns(2)
-        n = c1.slider("New tokens", 5, 80, 40, key="gpt_n")
+        n = c1.slider("New tokens", 5, 80, GPT2_TOKENS, key="gpt_n",
+                      help="Each extra token is another full pass of the decoder, so time grows with length.")
         sample = c2.toggle("Sample (creative) instead of greedy", value=False, key="gpt_sample")
         if st.button("Continue the text", key="gpt_go"):
             run_and_store("gpt2", "/gpt2_continue", {"text": text, "max_new_tokens": n, "do_sample": sample})
@@ -309,9 +314,9 @@ with tabs[4]:
     with main:
         st.header("T5 — Summarize")
         text = st.text_area("Paragraph to summarise", SAMPLE, key="t5_text", height=120)
-        n = st.slider("Maximum summary length (tokens)", 8, 120, 60, key="t5_n")
+        n = st.slider("Maximum summary length (tokens)", 8, 120, T5_TOKENS, key="t5_n")
         if st.button("Summarise", key="t5_go"):
-            run_and_store("t5", "/t5_summarize", {"text": text, "max_new_tokens": n})
+            run_and_store("t5", "/t5_summarize", {"text": text, "max_new_tokens": n, "num_beams": T5_BEAMS})
         item = received("t5")
         if item:
             st.success(item["result"].data["summary"])
@@ -329,8 +334,9 @@ with tabs[5]:
             if ensure_awake():
                 calls = {
                     "bert": ("/bert_fillmask", {"text": text, "mask_word": mask_word.strip()}),
-                    "gpt2": ("/gpt2_continue", {"text": text, "max_new_tokens": 40}),
-                    "t5": ("/t5_summarize", {"text": text, "max_new_tokens": 60}),
+                    "gpt2": ("/gpt2_continue", {"text": text, "max_new_tokens": GPT2_TOKENS}),
+                    "t5": ("/t5_summarize", {"text": text, "max_new_tokens": T5_TOKENS,
+                                             "num_beams": T5_BEAMS}),
                 }
                 # One after another, on purpose: the free server has 0.1 CPU and one model slot,
                 # so concurrent requests only queue and compete (measured: one passed the 120 s limit).
