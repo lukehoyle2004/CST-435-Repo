@@ -340,12 +340,16 @@ with tabs[5]:
         st.header("Compare: one paragraph, three archetypes")
         text = st.text_area("Paragraph", SAMPLE, key="cmp_text", height=120)
         mask_word = st.text_input("Word BERT should fill back in", "safer", key="cmp_word")
+        st.caption(f"GPT-2 writes {st.session_state.get('gpt_n', GPT2_TOKENS)} new tokens here "
+                   f"(set on the GPT-2 tab); T5 writes up to {T5_TOKENS}.")
         if st.button("Run all three", key="cmp_go"):
             st.session_state.pop("cmp", None)
             if ensure_awake():
                 calls = {
                     "bert": ("/bert_fillmask", {"text": text, "mask_word": mask_word.strip()}),
-                    "gpt2": ("/gpt2_continue", {"text": text, "max_new_tokens": GPT2_TOKENS}),
+                    # Follows the GPT-2 tab's slider, so a slow server can be met with fewer tokens.
+                    "gpt2": ("/gpt2_continue", {"text": text,
+                                                "max_new_tokens": st.session_state.get("gpt_n", GPT2_TOKENS)}),
                     "t5": ("/t5_summarize", {"text": text, "max_new_tokens": T5_TOKENS,
                                              "num_beams": T5_BEAMS}),
                 }

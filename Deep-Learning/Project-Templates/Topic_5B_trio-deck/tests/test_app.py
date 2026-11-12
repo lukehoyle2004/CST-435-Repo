@@ -149,3 +149,21 @@ def test_latency_history_when_supabase_is_down_shows_nothing_old(fake_api, fake_
     at = press(new_app(), "hist_go")
     assert any("Could not read the benchmarks view" in e.value for e in at.error)
     assert "View refreshed at" not in text_of(at)
+
+
+def test_compare_uses_the_gpt2_tabs_token_setting(fake_api, fake_db, monkeypatch):
+    import client as client_module
+    sent = []
+    real_post = client_module.TrioClient.post
+
+    def spy(self, path, payload):
+        sent.append((path, dict(payload)))
+        return real_post(self, path, payload)
+
+    monkeypatch.setattr(client_module.TrioClient, "post", spy)
+    at = new_app()
+    at.slider(key="gpt_n").set_value(5)
+    at = press(at, "cmp_go")
+    gpt = [p for path, p in sent if path == "/gpt2_continue"]
+    assert gpt and gpt[-1]["max_new_tokens"] == 5
+    assert "GPT-2 writes 5 new tokens here" in text_of(at)
