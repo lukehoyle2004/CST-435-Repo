@@ -221,7 +221,7 @@ log for real. The first call to each model downloads its pinned checkpoint (~1 G
    `pytest tests/test_supabase_roundtrip.py` locally with the same keys in `.env` to prove the
    access rules (service role can write and refresh; anon can read only the view).
 4. **Collect the evidence.**
-   `python -m scripts.benchmark_latency --base-url https://<api>.onrender.com --rounds 5`, then
+   `python -m scripts.benchmark_latency --base-url https://trioformer-api.onrender.com --rounds 3`, then
    `python -m scripts.cost_compare docs/benchmarks/latency_render.json`.
 
 Memory: on Render's free instance (512 MB, 0.1 CPU) only one pretrained checkpoint is kept in
