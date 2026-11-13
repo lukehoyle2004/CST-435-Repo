@@ -17,7 +17,7 @@ show what attention actually computes.
 | **Supabase project reference** | `jurmqdwomeiilrlebvuq` (project `trioformer`) → https://jurmqdwomeiilrlebvuq.supabase.co |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_5_former-it |
 | **Interface (Product 5B, TrioDeck)** | https://triodeck-luke.streamlit.app ([source](../Topic_5B_trio-deck)) |
-| **Video walkthrough (Luke Hoyle)** | *(add link)* |
+| **Video walkthrough (Luke Hoyle)** | https://youtu.be/OagH4y0owHg |
 | **Engineering report (Luke Hoyle)** | [docs/ENGINEERING_REPORT.md](docs/ENGINEERING_REPORT.md) |
 | **Individual contribution evidence (Luke Hoyle)** | [docs/CONTRIBUTION.md](docs/CONTRIBUTION.md) |
 | **Model card** | [MODEL_CARD.md](MODEL_CARD.md) |
