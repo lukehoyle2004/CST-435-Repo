@@ -8,7 +8,7 @@ of `Deep-Learning/Project-Templates/Topic_5_former-it` records the work phase by
 
 - Hand-wrote scaled-dot-product attention, multi-head attention, sinusoidal positional encoding
   and a pre-norm transformer encoder block (`src/transformer.py`), typed and shape-annotated.
-- Proved it correct: 19 unit tests (shape, attention sums to 1, gradient flow, permutation
+- Proved it correct: 20 unit tests (shape, attention sums to 1, gradient flow, permutation
   equivariance only without positional encoding) plus exact matches against `torch.nn`.
 - Benchmarked it against `torch.nn.TransformerEncoderLayer` under matched initialization: the
   loss curves agree to 1.2 × 10⁻⁷ over 300 steps, with a single-step timing comparison.
@@ -22,7 +22,7 @@ of `Deep-Learning/Project-Templates/Topic_5_former-it` records the work phase by
   and checkpoints pinned to exact Hub commits.
 - Measured memory (fp32 vs bf16, and rejected int8 quantization with evidence) and latency
   (grouped vs interleaved), and built a frontier-LLM cost comparison with break-even volumes.
-- Wrote 78 tests (end-to-end on the real checkpoints, outage paths, regression fixture) and the
+- Wrote 81 tests (end-to-end on the real checkpoints, outage paths, regression fixture) and the
   GitHub Actions workflow.
 - Wrote the README, architecture diagram, archetype matrix, model card, privacy statement and
   engineering report with the ethics and worldview reflection.

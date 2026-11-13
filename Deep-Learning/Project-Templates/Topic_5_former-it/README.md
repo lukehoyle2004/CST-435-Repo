@@ -140,7 +140,7 @@ shapes:
 | `weights · V`, concat heads, `W_O` | `[B, H, T, d_h]` → `[B, T, D]` → `[B, T, D]` |
 | `h = x + MHA(LN₁(x))`; `out = h + W₂·ReLU(W₁·LN₂(h))` | `[B, T, D]` (MLP width `F`) |
 
-**Unit tests** (`tests/test_transformer.py`, 19 tests): output shape equals input shape;
+**Unit tests** (`tests/test_transformer.py`, 20 tests): output shape equals input shape;
 attention weights sum to 1 over keys (padding gets exactly 0); gradients reach every parameter
 and the input; the block is permutation-equivariant, and an encoder is equivariant **only
 without** positional encoding. They also check closed-form values, `F.scaled_dot_product_attention`,
