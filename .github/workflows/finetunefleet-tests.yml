@@ -1,0 +1,58 @@
+# Runs the FineTuneFleet (Topic 6) pytest suite on every push and pull request
+# that touches the project. No Supabase secrets are configured, so the live
+# round-trip test skips and the API runs against the in-memory FakeDB. The model
+# side is real: the deployed DistilBERT checkpoint is downloaded from the
+# finetunefleet-v1 GitHub release and must match the weights hash recorded in
+# docs/experiments/results.json (scripts/fetch_model.py), the same check the
+# Render build runs. Checkpoints are cached between runs.
+name: FineTuneFleet tests
+
+on:
+  push:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_6_fine-it/**"
+      - ".github/workflows/finetunefleet-tests.yml"
+  pull_request:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_6_fine-it/**"
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Deep-Learning/Project-Templates/Topic_6_fine-it
+    env:
+      HF_HOME: ${{ github.workspace }}/.hf_cache
+      TOKENIZERS_PARALLELISM: "false"
+      FTF_MODEL_URL: https://github.com/lukehoyle2004/CST-435-Repo/releases/download/finetunefleet-v1/finetunefleet-deployed.tar.gz
+      FTF_ZERO_SHOT_HALF_WEIGHTS: "1"   # same zero-shot variant the Render service runs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # matches PYTHON_VERSION in render.yaml
+          cache: pip
+          cache-dependency-path: |
+            Deep-Learning/Project-Templates/Topic_6_fine-it/api/requirements.txt
+            Deep-Learning/Project-Templates/Topic_6_fine-it/requirements-dev.txt
+
+      - name: Install dependencies (CPU-only torch)
+        run: pip install -r requirements-dev.txt
+
+      - name: Cache the deployed checkpoint and flan-t5-small
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.hf_cache
+            Deep-Learning/Project-Templates/Topic_6_fine-it/models/deployed
+            Deep-Learning/Project-Templates/Topic_6_fine-it/models/zero_shot_fp16
+          key: ftf-models-${{ hashFiles('Deep-Learning/Project-Templates/Topic_6_fine-it/docs/experiments/results.json', 'Deep-Learning/Project-Templates/Topic_6_fine-it/shared/checkpoints.py') }}
+
+      - name: Fetch and verify the deployed checkpoint (no-op when cached)
+        run: python -m scripts.fetch_model
+
+      - name: Run pytest
+        run: pytest -q

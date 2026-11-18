@@ -1,0 +1,150 @@
+{
+ "run_name": "ft-lr5e-5-ep3",
+ "cases": [
+  {
+   "text": "My new card still hasn't arrived after two weeks.",
+   "intended": "card_services",
+   "queue": "card_services",
+   "confidence": 0.9958
+  },
+  {
+   "text": "How do I activate the card you sent me?",
+   "intended": "card_services",
+   "queue": "card_services",
+   "confidence": 0.9983
+  },
+  {
+   "text": "Can I get a virtual card for online shopping?",
+   "intended": "card_services",
+   "queue": "card_services",
+   "confidence": 0.9981
+  },
+  {
+   "text": "My transfer to my landlord is still pending since Monday.",
+   "intended": "transfers",
+   "queue": "transfers",
+   "confidence": 0.9965
+  },
+  {
+   "text": "I sent money to the wrong account, can you reverse it?",
+   "intended": "transfers",
+   "queue": "transfers",
+   "confidence": 0.9947
+  },
+  {
+   "text": "How long does a bank transfer from abroad take?",
+   "intended": "transfers",
+   "queue": "transfers",
+   "confidence": 0.9958
+  },
+  {
+   "text": "My top up didn't go through but the money left my account.",
+   "intended": "top_ups",
+   "queue": "top_ups",
+   "confidence": 0.9964
+  },
+  {
+   "text": "Can I top up my account with a cheque?",
+   "intended": "top_ups",
+   "queue": "top_ups",
+   "confidence": 0.9964
+  },
+  {
+   "text": "Why was my top-up reverted?",
+   "intended": "top_ups",
+   "queue": "top_ups",
+   "confidence": 0.9966
+  },
+  {
+   "text": "The ATM gave me less cash than I asked for.",
+   "intended": "cash_atm",
+   "queue": "cash_atm",
+   "confidence": 0.9922
+  },
+  {
+   "text": "The cash machine kept my card.",
+   "intended": "cash_atm",
+   "queue": "cash_atm",
+   "confidence": 0.9906
+  },
+  {
+   "text": "Where can I withdraw cash for free?",
+   "intended": "fees_fx",
+   "queue": "fees_fx",
+   "confidence": 0.9946
+  },
+  {
+   "text": "Why was I charged a fee for withdrawing cash?",
+   "intended": "fees_fx",
+   "queue": "fees_fx",
+   "confidence": 0.9979
+  },
+  {
+   "text": "What exchange rate do you use when I pay in euros?",
+   "intended": "fees_fx",
+   "queue": "fees_fx",
+   "confidence": 0.9981
+  },
+  {
+   "text": "There is an extra charge on my statement for a transfer.",
+   "intended": "fees_fx",
+   "queue": "fees_fx",
+   "confidence": 0.9978
+  },
+  {
+   "text": "A card payment I made yesterday shows up twice.",
+   "intended": "payments_disputes",
+   "queue": "payments_disputes",
+   "confidence": 0.9942
+  },
+  {
+   "text": "I'd like a refund for an item I returned to the shop.",
+   "intended": "payments_disputes",
+   "queue": "payments_disputes",
+   "confidence": 0.9946
+  },
+  {
+   "text": "My payment was declined at the supermarket.",
+   "intended": "payments_disputes",
+   "queue": "payments_disputes",
+   "confidence": 0.9621
+  },
+  {
+   "text": "Someone used my card without my permission.",
+   "intended": "security_fraud",
+   "queue": "security_fraud",
+   "confidence": 0.9955
+  },
+  {
+   "text": "I lost my phone and my card, please freeze everything.",
+   "intended": "security_fraud",
+   "queue": "security_fraud",
+   "confidence": 0.9949
+  },
+  {
+   "text": "There's a transaction I don't recognise, I think my card was stolen.",
+   "intended": "security_fraud",
+   "queue": "security_fraud",
+   "confidence": 0.9952
+  },
+  {
+   "text": "How do I verify my identity?",
+   "intended": "account_identity",
+   "queue": "account_identity",
+   "confidence": 0.9974
+  },
+  {
+   "text": "I want to change my PIN.",
+   "intended": "card_services",
+   "queue": "card_services",
+   "confidence": 0.9982
+  },
+  {
+   "text": "Please close my account.",
+   "intended": "account_identity",
+   "queue": "account_identity",
+   "confidence": 0.997
+  }
+ ],
+ "note": "Hand-written messages, three per queue, labelled by the routing rules in shared/queues.py (a PIN change is card_services; any fee question, even about cash, is fees_fx). queue/confidence are the deployed checkpoint's outputs when this fixture was written."
+}
