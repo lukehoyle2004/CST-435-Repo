@@ -1,21 +1,41 @@
-# Render.com blueprint for the FastAPI model service (Cloud #2).
+# Render.com blueprint for the FineTuneFleet FastAPI service.
 # In the Render dashboard: New -> Blueprint -> point at this repo.
 # Set SUPABASE_URL and SUPABASE_SERVICE_KEY as environment variables (secrets)
 # in the service settings after the first deploy.
+#
+# The build step downloads the deployed fine-tuned checkpoint from the GitHub
+# release (and refuses it unless its sha256 matches the deployed row in
+# docs/experiments/results.json), plus flan-t5-small, into the service directory,
+# so a request never waits on a download.
 services:
   - type: web
-    name: fine-it-api
+    name: finetunefleet-api
     runtime: python
+    rootDir: Deep-Learning/Project-Templates/Topic_6_fine-it
     plan: free
-    buildCommand: "pip install -r api/requirements.txt"
+    buildCommand: "pip install -r api/requirements.txt && python -m scripts.fetch_model"
     startCommand: "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /healthz
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.9"
+        value: "3.13.7"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
+      - key: FTF_MODEL_URL
+        value: "https://github.com/lukehoyle2004/CST-435-Repo/releases/download/finetunefleet-v1/finetunefleet-deployed.tar.gz"
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: HF_HOME
+        value: ".hf_cache"
+      - key: TORCH_NUM_THREADS
+        value: "1"
+      # Both models resident by default; set to 1 if the instance runs out of
+      # memory (each switch then costs a visible cold start; see /metrics).
+      - key: FTF_MAX_RESIDENT
+        value: "2"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"

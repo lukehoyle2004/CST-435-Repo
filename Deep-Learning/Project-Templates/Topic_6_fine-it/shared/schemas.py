@@ -1,164 +1,127 @@
-"""Pydantic request/response models shared by the API and (optionally) the UI.
+"""Pydantic request/response models: the contract between FineTuneFleet and its callers.
 
-The contract between the three clouds. "Fine-It" is transfer learning with a
-tiny causal **character Transformer**: pretrain a next-character language model
-on a synthetic-dialect corpus, then fine-tune a classification head and compare
-it against a from-scratch baseline. The *shape* of the contract follows the base
-template; the fields add a `run_type` (pretrain vs finetune) and a generation
-endpoint.
+FleetDeck (Product 6B) and any other client depend only on these shapes.
 """
 from __future__ import annotations
 
-from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+EXAMPLE_MESSAGE = "I don't recognise a payment on my statement from a shop I've never been to"
 
-# ---------------------------------------------------------------------------
-# Datasets
-# ---------------------------------------------------------------------------
-class DatasetCreate(BaseModel):
-    """Request body for POST /datasets (the pretraining corpus parameters)."""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    n_rows: int = Field(4000, ge=200, le=50_000, description="Corpus size for pretraining.")
-    seq_len: int = Field(20, ge=6, le=64, description="Characters per string.")
-    seed: int = Field(42, description="Seed for the synthetic corpus generator.")
+ModelKind = Literal["fine_tuned", "zero_shot"]
 
 
-class Dataset(BaseModel):
-    """A dataset row as stored in Supabase."""
-
-    id: int
-    name: str
-    n_rows: int
-    seq_len: int
-    vocab_size: int
-    n_classes: int
-    created_at: datetime
-
-
-# ---------------------------------------------------------------------------
-# Pretraining  (self-supervised next-char LM)
-# ---------------------------------------------------------------------------
-class PretrainRequest(BaseModel):
-    dataset_id: int
-    lr: float = Field(0.005, gt=0.0, description="Adam learning rate.")
-    batch_size: int = Field(64, ge=1)
-    epochs: int = Field(8, ge=1, le=200)
-
-
-class PretrainResponse(BaseModel):
-    run_id: int
-    val_loss: float = Field(..., description="Held-out next-char cross-entropy.")
-
-
-# ---------------------------------------------------------------------------
-# Fine-tuning  (supervised; pretrained vs scratch)
-# ---------------------------------------------------------------------------
-class FinetuneRequest(BaseModel):
-    dataset_id: int
-    pretrain_run_id: Optional[int] = Field(
-        None, description="Warm-start from this pretrain run; None trains only scratch."
-    )
-    n_labeled: int = Field(240, ge=30, le=5000, description="Small labelled train set.")
-    lr: float = Field(0.004, gt=0.0)
-    batch_size: int = Field(32, ge=1)
-    epochs: int = Field(6, ge=1, le=200)
-    test_size: float = Field(0.25, gt=0.0, lt=1.0)
-
-
-class ClassMetrics(BaseModel):
-    accuracy: float
-    macro_f1: float
-
-
-class FinetuneResponse(BaseModel):
-    run_id: int
-    pretrained: Optional[ClassMetrics] = Field(
-        None, description="Metrics of the fine-tuned (warm-started) model."
-    )
-    scratch: ClassMetrics = Field(..., description="Metrics of the from-scratch baseline.")
-
-
-# ---------------------------------------------------------------------------
-# Runs
-# ---------------------------------------------------------------------------
-class Run(BaseModel):
-    """A training-run row as stored in Supabase (metrics only)."""
-
-    id: int
-    dataset_id: int
-    run_type: str
-    lr: float
-    batch_size: int
-    epochs: int
-    accuracy: Optional[float] = None
-    macro_f1: Optional[float] = None
-    scratch_accuracy: Optional[float] = None
-    val_loss: Optional[float] = None
-    pretrain_run_id: Optional[int] = None
-    created_at: datetime
-
-
-# ---------------------------------------------------------------------------
-# Generation  (temperature sampling from the LM)
-# ---------------------------------------------------------------------------
-class GenerateRequest(BaseModel):
-    run_id: int = Field(..., description="A pretrain run whose LM head to sample from.")
-    prompt: str = Field("ab", min_length=1, max_length=32, description="Seed characters.")
-    length: int = Field(24, ge=1, le=64, description="How many characters to generate.")
-    temperature: float = Field(0.8, gt=0.0, le=5.0)
-    seed: int = Field(0, description="Sampling seed for reproducibility.")
-
-
-class GenerateResponse(BaseModel):
-    prompt: str
-    generated: str = Field(..., description="Only the newly sampled characters.")
-    text: str = Field(..., description="Prompt + generated, concatenated.")
-
-
-# ---------------------------------------------------------------------------
-# Prediction  (classify a string's dialect)
-# ---------------------------------------------------------------------------
 class PredictRequest(BaseModel):
-    run_id: int = Field(..., description="A finetune run.")
-    sequence: List[int] = Field(..., min_length=2, description="Character ids to classify.")
+    text: str = Field(..., min_length=1, max_length=2000, examples=[EXAMPLE_MESSAGE],
+                      description="One customer message. It is never stored -- only its SHA-256.")
 
 
-class PredictResponse(BaseModel):
-    run_id: int
-    label: int
-    class_name: str
-    confidence: float
-    probs: List[float]
-    sequence: List[int]
-    sequence_sha256: str = Field(..., description="Hash of the input (no raw chars stored).")
-    true_class: Optional[str] = None
+class BatchRequest(BaseModel):
+    texts: List[str] = Field(..., min_length=1, max_length=32,
+                             description="Up to 32 messages, each 1-2000 characters.")
+    model: ModelKind = "fine_tuned"
 
 
-class PredictSampleRequest(BaseModel):
-    run_id: int
-    seed: int = Field(0, description="Seed for the generated sample.")
-    true_class: Optional[int] = Field(None, ge=0)
+class Prediction(BaseModel):
+    queue: str = Field(..., description="The queue the message is routed to.")
+    confidence: float = Field(..., ge=0, le=1, description="Probability of that queue.")
+    needs_review: bool = Field(..., description="Confidence below the review threshold, or the "
+                                                "runner-up is the fraud queue: send to a human.")
+    scores: Dict[str, float] = Field(..., description="Probability per queue, summing to 1.")
+    model: ModelKind
+    run_name: str = Field(..., description="The ftf_experiments row that served this prediction.")
+    experiment_id: Optional[int] = Field(None, description="Its id in the experiment store (null if the store was unreachable at lookup).")
+    checkpoint: str
+    latency_ms: float = Field(..., description="Model compute only, measured on the server.")
+    load_ms: float = Field(..., description="Time spent loading the model during this request (0 when warm).")
+    cold_start: bool
+    n_tokens: int
+    prediction_id: Optional[int] = Field(None, description="ftf_predictions.id, or null if it could not be logged.")
+    logged: bool
 
 
-# ---------------------------------------------------------------------------
-# Meta / Ops
-# ---------------------------------------------------------------------------
-class ClassesResponse(BaseModel):
-    classes: List[str]
-    n_classes: int
+class BatchResponse(BaseModel):
+    model: ModelKind
+    predictions: List[Prediction]
+    total_latency_ms: float = Field(..., description="Sum of model compute across the batch.")
+    wall_ms: float = Field(..., description="Server-side wall time for the whole batch, including logging.")
+    logged: int = Field(..., description="How many of the predictions reached the store.")
+
+
+class Experiment(BaseModel):
+    rank: int
+    id: int
+    run_name: str
+    kind: ModelKind
+    base_checkpoint: str
+    seed: int
+    hyperparams: dict
+    n_train: int
+    val_macro_f1: float
+    test_accuracy: float
+    test_accuracy_lo: float
+    test_accuracy_hi: float
+    test_macro_f1: float
+    test_macro_f1_lo: float
+    test_macro_f1_hi: float
+    fraud_recall: float
+    fraud_recall_lo: float
+    fraud_recall_hi: float
+    delta_macro_f1: Optional[float] = None
+    delta_macro_f1_lo: Optional[float] = None
+    delta_macro_f1_hi: Optional[float] = None
+    train_runtime_s: float
+    eval_ms_per_message: float
+    is_deployed: bool
+    created_at: Optional[str] = None
+    distinguishable_from_best: bool
+
+
+class ExperimentsResponse(BaseModel):
+    experiments: List[Experiment]
+    deployed_run: Optional[str]
+    best_run: Optional[str]
+    deployed_is_best: bool = Field(..., description="The served checkpoint is the top fine-tuned row on the leaderboard.")
+    source: str = "ftf_leaderboard (Supabase)"
+
+
+class LatencyRow(BaseModel):
+    endpoint: str
+    run_name: Optional[str] = None
+    n_calls: int
+    n_cold: int
+    mean_latency_ms: Optional[float] = None
+    p50_latency_ms: Optional[float] = None
+    p95_latency_ms: Optional[float] = None
+    mean_load_ms: Optional[float] = None
+    mean_tokens: Optional[float] = None
+    review_rate: Optional[float] = None
+    last_served_at: Optional[str] = None
+
+
+class Metrics(BaseModel):
+    since_start: Dict[str, dict] = Field(..., description="This process only: calls, errors, unlogged, mean latency per endpoint.")
+    store: Optional[List[LatencyRow]] = Field(None, description="All-time aggregates from the ftf_latency view (null if unreachable).")
+    store_error: Optional[str] = None
+    resident_models: List[str]
+    uptime_s: float
 
 
 class Health(BaseModel):
-    status: str
-    model_loader: bool
-    supabase: bool
+    status: Literal["ok", "degraded"]
+    database: dict
+    models: dict
+    deployed_run: str
 
 
 class Version(BaseModel):
+    api_version: str
     git_sha: str
-    torch_version: str
-    supabase_project_ref: Optional[str]
+    python: str
+    torch: str
+    transformers: str
+    fine_tuned: dict
+    zero_shot: dict
+    queues: List[str]
