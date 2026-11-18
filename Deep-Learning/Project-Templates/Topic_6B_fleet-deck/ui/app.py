@@ -147,8 +147,8 @@ def prediction_panel(kind: str, r: Result) -> None:
         show_failure(r)
         return
     d = r.data
-    st.metric("Routed to", QUEUE_LABELS.get(d["queue"], d["queue"]), f"{d['confidence']:.1%} sure",
-              delta_color="off")
+    st.metric("Routed to", QUEUE_LABELS.get(d["queue"], d["queue"]))
+    st.markdown(f"**{d['confidence']:.1%} sure**")
     if d["needs_review"]:
         st.warning("**Needs review** — under 60% sure, or the fraud queue is a live possibility.")
     else:
@@ -157,7 +157,7 @@ def prediction_panel(kind: str, r: Result) -> None:
     st.altair_chart(alt.Chart(scores).mark_bar(color="#2a78d6" if kind == "fine_tuned" else "#eb6834").encode(
         x=alt.X("probability:Q", scale=alt.Scale(domain=[0, 1]), title="probability"),
         y=alt.Y("queue:N", sort="-x", title=None),
-        tooltip=["queue", alt.Tooltip("probability:Q", format=".3f")]).properties(height=220),
+        tooltip=["queue", alt.Tooltip("probability:Q", format=".3f")]).properties(height=300),
         use_container_width=True)
     network = max(r.e2e_ms - d["latency_ms"] - d["load_ms"], 0.0)
     # Stacked, not in columns: these panels already sit in the Try It tab's two columns,
@@ -287,7 +287,8 @@ with tabs[2]:
                     "Rank": r["rank"],
                     "Run": r["run_name"] + (" ★ deployed" if r["is_deployed"] else ""),
                     "Kind": "fine-tuned" if r["kind"] == "fine_tuned" else "zero-shot",
-                    "Learning rate": r["hyperparams"].get("learning_rate"),
+                    "Learning rate": (f"{r['hyperparams']['learning_rate']:g}"
+                                      if r["hyperparams"].get("learning_rate") else "–"),
                     "Epochs": r["hyperparams"].get("epochs"),
                     "Train messages": r["n_train"],
                     "Encoder": "frozen" if r["hyperparams"].get("freeze_encoder") else
@@ -417,11 +418,11 @@ with tabs[3]:
                     st.markdown(f"**Frontier calls.** {fr['explain']} Measured mean message length in this batch: "
                                 f"{m['tokens']:.1f} tokens, so each call is about {in_tok:.0f} input tokens and "
                                 f"{fr['output_tokens']} output tokens, plus each model's reasoning tokens:")
-                    st.markdown("\n".join(f"- {n}: ${p['input']:.2f} in / ${p['output']:.2f} out per million tokens; "
+                    st.markdown("\n".join(f"- {n}: \\${p['input']:.2f} in / \\${p['output']:.2f} out per million tokens; "
                                           f"{p['reasoning_tokens']} reasoning tokens ({p['note']})"
                                           for n, p in fr["models"].items()))
                     st.markdown(f"**Self-hosting.** {sh['explain']}")
-                    st.markdown("\n".join(f"- {n}: {p['cpu']} CPU, ${p['usd_per_month']}/month ({p['note']})"
+                    st.markdown("\n".join(f"- {n}: {p['cpu']} CPU, \\${p['usd_per_month']}/month ({p['note']})"
                                           for n, p in sh["plans"].items()))
         st.subheader("All logged traffic so far")
         if st.button("Load latency history", key="lat_go"):

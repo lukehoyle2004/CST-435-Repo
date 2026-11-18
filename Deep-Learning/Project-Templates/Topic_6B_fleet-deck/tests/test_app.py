@@ -138,6 +138,8 @@ def test_cost_tab_posts_the_fixed_batch_and_states_its_assumptions(fake_api, fak
     page = text_of(at)
     assert "Prices as of" in page and "not measured" in "\n".join(priced["Quality (test macro-F1)"])
     assert "Frontier-model quality was not measured" in page
+    md = "\n".join(str(m.value) for m in at.markdown)
+    assert "\\$0.10 in / \\$0.50 out" in md and "\\$7/month" in md   # escaped: a bare $ pair renders as LaTeX
 
 
 def test_cost_tab_can_time_the_zero_shot_baseline_too(fake_api, fake_db):

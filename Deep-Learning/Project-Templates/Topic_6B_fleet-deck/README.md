@@ -7,7 +7,7 @@ routing a month of messages would cost here compared with a frontier LLM API.
 
 | | Link |
 |---|---|
-| **FleetDeck (Streamlit Community Cloud)** | _added after deployment_ |
+| **FleetDeck (Streamlit Community Cloud)** | https://fleetdeck-luke.streamlit.app |
 | **GitHub (this interface)** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_6B_fleet-deck |
 | **Service it targets** | Product 6 "FineTuneFleet": [`Topic_6_fine-it`](../Topic_6_fine-it) in the same repository |
 | **Render API it calls** | https://finetunefleet-api.onrender.com (docs at `/docs`) |
