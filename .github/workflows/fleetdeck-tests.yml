@@ -1,0 +1,40 @@
+# Runs the FleetDeck (Topic 6B) suite on every push and pull request that touches
+# the dashboard. No secrets and no network: the Streamlit script runs headlessly
+# (AppTest) against a fake FineTuneFleet API transport and a read-only fake
+# Supabase, covering all five tabs, both latency clocks, the fixed cost batch,
+# cold start vs outage, recovery without a reload, and a static check of the
+# tier boundary (no model code or weights, no SQL writes, no service-role key).
+name: FleetDeck tests
+
+on:
+  push:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_6B_fleet-deck/**"
+      - ".github/workflows/fleetdeck-tests.yml"
+  pull_request:
+    paths:
+      - "Deep-Learning/Project-Templates/Topic_6B_fleet-deck/**"
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Deep-Learning/Project-Templates/Topic_6B_fleet-deck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # Streamlit Community Cloud's default
+          cache: pip
+          cache-dependency-path: |
+            Deep-Learning/Project-Templates/Topic_6B_fleet-deck/ui/requirements.txt
+            Deep-Learning/Project-Templates/Topic_6B_fleet-deck/requirements-dev.txt
+
+      - name: Install dependencies (no torch, by design)
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest -q
