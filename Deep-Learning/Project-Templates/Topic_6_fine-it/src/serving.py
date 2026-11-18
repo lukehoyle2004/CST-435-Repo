@@ -15,9 +15,11 @@ at build time (scripts/fetch_model.py).
 """
 from __future__ import annotations
 
+import ctypes
 import gc
 import json
 import os
+import sys
 import threading
 import time
 from collections import OrderedDict
@@ -40,6 +42,34 @@ ROOT = Path(__file__).resolve().parents[1]
 # catches on the test set (1.3% of messages flagged; 22 of 100 errors caught).
 REVIEW_THRESHOLD = float(os.environ.get("FTF_REVIEW_THRESHOLD", "0.60"))
 FRAUD_FLOOR = float(os.environ.get("FTF_FRAUD_FLOOR", "0.10"))
+
+
+def memory_mb() -> dict:
+    """Resident and peak memory of this process (Linux /proc; empty elsewhere)."""
+    try:
+        status = Path("/proc/self/status").read_text()
+    except OSError:
+        return {}
+    out = {}
+    for line in status.splitlines():
+        key, _, rest = line.partition(":")
+        if key in ("VmRSS", "VmHWM"):
+            out["rss_mb" if key == "VmRSS" else "peak_mb"] = round(int(rest.split()[0]) / 1024, 1)
+    return out
+
+
+def release_memory() -> None:
+    """Give freed model memory back to the OS before the next model loads.
+
+    glibc keeps freed heap memory for reuse; on a 512 MB instance the evicted model's
+    pages must actually be returned, or loading the next model runs out of memory.
+    """
+    gc.collect()
+    if sys.platform.startswith("linux"):
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except OSError:
+            pass
 
 
 def model_dir() -> Path:
@@ -112,6 +142,7 @@ class Registry:
         self._models: OrderedDict[str, Router] = OrderedDict()
         self._lock = threading.Lock()
         self.last_error: dict[str, str] = {}
+        self.memory_after_load: dict[str, dict] = {}
 
     def resident(self) -> list[str]:
         return list(self._models)
@@ -122,9 +153,12 @@ class Registry:
             if kind in self._models:
                 self._models.move_to_end(kind)
                 return self._models[kind], 0.0
+            evicted = False
             while len(self._models) >= self.max_resident:
                 self._models.popitem(last=False)
-                gc.collect()                  # free the evicted weights before loading the next model
+                evicted = True
+            if evicted:
+                release_memory()              # free the evicted weights before loading the next model
             t0 = time.perf_counter()
             try:
                 router = LOADERS[kind]()
@@ -133,6 +167,7 @@ class Registry:
                 raise
             self.last_error.pop(kind, None)
             self._models[kind] = router
+            self.memory_after_load[kind] = memory_mb()
             # Never report a zero load for a real load (the DB check ties cold_start to load_ms > 0).
             return router, max((time.perf_counter() - t0) * 1000, 0.001)
 

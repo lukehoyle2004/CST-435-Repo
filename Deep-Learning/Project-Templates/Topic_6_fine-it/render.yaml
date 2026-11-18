@@ -43,5 +43,11 @@ services:
         value: "1"
       - key: MALLOC_ARENA_MAX
         value: "2"
+      # A fixed mmap threshold stops glibc from raising it after large frees, so model
+      # tensors are always mmap'd and go back to the OS when a model is evicted.
+      - key: MALLOC_MMAP_THRESHOLD_
+        value: "131072"
+      - key: MALLOC_TRIM_THRESHOLD_
+        value: "131072"
       - key: TOKENIZERS_PARALLELISM
         value: "false"

@@ -241,7 +241,8 @@ def metrics() -> Metrics:
 def healthz() -> Health:
     database = db.ping()
     models = {"resident": REGISTRY.resident(), "max_resident": REGISTRY.max_resident,
-              "errors": dict(REGISTRY.last_error)}
+              "errors": dict(REGISTRY.last_error), "memory_mb": serving.memory_mb(),
+              "memory_after_load_mb": dict(REGISTRY.memory_after_load)}
     ok = database["ok"] and not REGISTRY.last_error.get("fine_tuned")
     return Health(status="ok" if ok else "degraded", database=database, models=models,
                   deployed_run=serving.deployed_meta()["run_name"])
