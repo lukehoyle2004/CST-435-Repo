@@ -1,0 +1,27 @@
+{
+  "_note": "Every number here is an input to scripts/benchmark_latency.py (and mirrored in FleetDeck's ui/content.py). Prices change; re-check the sources before quoting the result.",
+  "as_of": "2026-11-18",
+  "frontier_llm": {
+    "source": "Anthropic API list prices (platform.claude.com pricing), standard tier, USD per million tokens; Haiku 5.5 price is for prompts up to 100K tokens",
+    "models": {
+      "Claude Haiku 5.5": {"input_per_mtok": 0.10, "output_per_mtok": 0.50, "reasoning_tokens": 0,
+                           "note": "thinking turned off (allowed at effort high or below)"},
+      "Claude Sonnet 5.5": {"input_per_mtok": 2.00, "output_per_mtok": 10.00, "reasoning_tokens": 0,
+                            "note": "thinking off with thinking type between_tools"},
+      "Claude Opus 5.5": {"input_per_mtok": 4.00, "output_per_mtok": 20.00, "reasoning_tokens": 100,
+                          "note": "thinking cannot be turned off; ~100 billed reasoning tokens at low effort (estimate)"}
+    },
+    "prompt_tokens": 220,
+    "output_tokens": 6
+  },
+  "self_hosted": {
+    "source": "Render compute plans (render.com/docs/compute-plans). Monthly prices are list prices at the time of writing: VERIFY on render.com/pricing before quoting.",
+    "plans": {
+      "Free": {"cpu": 0.1, "usd_per_month": 0, "note": "sleeps after 15 idle minutes (~1 min to wake); 750 instance-hours/month per workspace"},
+      "Starter": {"cpu": 0.5, "usd_per_month": 7, "note": "always on; same 512 MB"},
+      "Standard": {"cpu": 1.0, "usd_per_month": 25, "note": "always on; 2 GB, both models resident"}
+    },
+    "measured_on": "Free",
+    "hours_per_month": 730
+  }
+}
