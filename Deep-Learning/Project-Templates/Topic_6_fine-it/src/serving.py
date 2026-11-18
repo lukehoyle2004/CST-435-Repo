@@ -58,6 +58,13 @@ def memory_mb() -> dict:
     return out
 
 
+def log_memory(stage: str) -> None:
+    """One line per model-loading stage in the server log, to see where memory goes."""
+    m = memory_mb()
+    if m:
+        print(f"[memory] {stage}: rss {m.get('rss_mb')} MB, peak {m.get('peak_mb')} MB", flush=True)
+
+
 def release_memory() -> None:
     """Give freed model memory back to the OS before the next model loads.
 
@@ -126,7 +133,8 @@ def load_zero_shot() -> Router:
     # so the model fits Render's 512 MB instance; docs/experiments/zero_shot_served_variant.json
     # measures how closely it agrees with the float32 baseline on the leaderboard.
     half = os.environ.get("FTF_ZERO_SHOT_HALF_WEIGHTS", "0") == "1"
-    z = ZeroShotRouter(choice.get("chosen", "options"), calibrate=choice.get("calibrate", True), half_storage=half)
+    z = ZeroShotRouter(choice.get("chosen", "options"), calibrate=choice.get("calibrate", True), half_storage=half,
+                       on_stage=log_memory)
     return Router("zero_shot", "zero-shot-flan-t5-small", z.checkpoint, z.scores,
                   lambda t: len(z.tok(z.build(t)[0])["input_ids"]))
 
@@ -159,6 +167,7 @@ class Registry:
                 evicted = True
             if evicted:
                 release_memory()              # free the evicted weights before loading the next model
+            log_memory(f"before loading {kind}")
             t0 = time.perf_counter()
             try:
                 router = LOADERS[kind]()

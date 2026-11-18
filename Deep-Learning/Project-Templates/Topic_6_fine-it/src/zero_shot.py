@@ -100,7 +100,7 @@ class ZeroShotRouter:
     """Label-likelihood scoring with flan-t5-small. Thread-unsafe; one instance per process."""
 
     def __init__(self, prompt: str = DEFAULT_PROMPT, calibrate: bool = True, device: str = "cpu",
-                 half_storage: bool = False):
+                 half_storage: bool = False, on_stage=lambda stage: None):
         self.prompt_name = prompt
         self.calibrate = calibrate
         self.build = PROMPTS[prompt]
@@ -108,6 +108,7 @@ class ZeroShotRouter:
         self.half_storage = half_storage
         t0 = time.perf_counter()
         self.tok = AutoTokenizer.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
+        on_stage("zero-shot tokenizer loaded")
         if half_storage and (HALF_DIR / "config.json").exists():
             self.model = AutoModelForSeq2SeqLM.from_pretrained(HALF_DIR, dtype=torch.float16, low_cpu_mem_usage=True)
         else:
@@ -115,6 +116,7 @@ class ZeroShotRouter:
                 ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION, low_cpu_mem_usage=True,
                 dtype=torch.float16 if half_storage else torch.float32)
         if half_storage:
+            on_stage("zero-shot float16 weights loaded")
             _compute_in_float32(self.model)
         self.model.eval().to(device)
         self.load_ms = (time.perf_counter() - t0) * 1000
@@ -122,7 +124,9 @@ class ZeroShotRouter:
         enc = self.tok(labels, padding=True, return_tensors="pt")
         self.label_ids = enc.input_ids.to(device)             # (8, L) incl. </s>
         self.label_mask = enc.attention_mask.to(device)
+        on_stage("zero-shot model ready, before calibration")
         self.prior = self._raw(CONTENT_FREE).mean(0) if calibrate else None
+        on_stage("zero-shot calibrated")
 
     @property
     def checkpoint(self) -> str:
