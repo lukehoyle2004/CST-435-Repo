@@ -1,0 +1,210 @@
+{
+  "dataset": "PolyAI/banking77@1846984189f2bc0ac51c6fc3a600fa9e1714e0c6",
+  "tokenizer": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+  "split_seed": 42,
+  "validation_fraction": 0.1,
+  "cleaning": {
+    "raw_train": 10003,
+    "raw_test": 3080,
+    "dropped_duplicate_within_train": 31,
+    "dropped_duplicate_within_test": 4,
+    "dropped_train_overlapping_test": 25
+  },
+  "rows": {
+    "train": 8952,
+    "validation": 995,
+    "test": 3076
+  },
+  "intents_per_split": {
+    "train": 77,
+    "validation": 77,
+    "test": 77
+  },
+  "queue_balance": {
+    "train": {
+      "card_services": {
+        "n": 1887,
+        "share": 0.21
+      },
+      "transfers": {
+        "n": 1265,
+        "share": 0.14
+      },
+      "top_ups": {
+        "n": 1043,
+        "share": 0.12
+      },
+      "cash_atm": {
+        "n": 577,
+        "share": 0.06
+      },
+      "fees_fx": {
+        "n": 1557,
+        "share": 0.17
+      },
+      "payments_disputes": {
+        "n": 879,
+        "share": 0.1
+      },
+      "security_fraud": {
+        "n": 718,
+        "share": 0.08
+      },
+      "account_identity": {
+        "n": 1026,
+        "share": 0.11
+      }
+    },
+    "validation": {
+      "card_services": {
+        "n": 210,
+        "share": 0.21
+      },
+      "transfers": {
+        "n": 142,
+        "share": 0.14
+      },
+      "top_ups": {
+        "n": 115,
+        "share": 0.12
+      },
+      "cash_atm": {
+        "n": 64,
+        "share": 0.06
+      },
+      "fees_fx": {
+        "n": 173,
+        "share": 0.17
+      },
+      "payments_disputes": {
+        "n": 98,
+        "share": 0.1
+      },
+      "security_fraud": {
+        "n": 80,
+        "share": 0.08
+      },
+      "account_identity": {
+        "n": 113,
+        "share": 0.11
+      }
+    },
+    "test": {
+      "card_services": {
+        "n": 760,
+        "share": 0.25
+      },
+      "transfers": {
+        "n": 400,
+        "share": 0.13
+      },
+      "top_ups": {
+        "n": 358,
+        "share": 0.12
+      },
+      "cash_atm": {
+        "n": 199,
+        "share": 0.06
+      },
+      "fees_fx": {
+        "n": 479,
+        "share": 0.16
+      },
+      "payments_disputes": {
+        "n": 240,
+        "share": 0.08
+      },
+      "security_fraud": {
+        "n": 240,
+        "share": 0.08
+      },
+      "account_identity": {
+        "n": 400,
+        "share": 0.13
+      }
+    }
+  },
+  "intents_per_queue": {
+    "card_services": 19,
+    "transfers": 10,
+    "top_ups": 9,
+    "cash_atm": 5,
+    "fees_fx": 12,
+    "payments_disputes": 6,
+    "security_fraud": 6,
+    "account_identity": 10
+  },
+  "length_chars": {
+    "train": {
+      "min": 13,
+      "p5": 26.0,
+      "p25": 36.0,
+      "median": 47.0,
+      "p75": 64.0,
+      "p95": 152.0,
+      "p99": 222.49,
+      "max": 429,
+      "mean": 59.62
+    },
+    "validation": {
+      "min": 14,
+      "p5": 27.0,
+      "p25": 37.0,
+      "median": 47.0,
+      "p75": 62.0,
+      "p95": 141.0,
+      "p99": 199.3,
+      "max": 419,
+      "mean": 58.21
+    },
+    "test": {
+      "min": 13,
+      "p5": 24.0,
+      "p25": 35.0,
+      "median": 45.0,
+      "p75": 60.0,
+      "p95": 124.0,
+      "p99": 199.0,
+      "max": 367,
+      "mean": 54.22
+    }
+  },
+  "length_tokens": {
+    "train": {
+      "min": 4,
+      "p5": 8.0,
+      "p25": 11.0,
+      "median": 13.0,
+      "p75": 17.0,
+      "p95": 37.0,
+      "p99": 53.0,
+      "max": 98,
+      "mean": 16.26
+    },
+    "validation": {
+      "min": 5,
+      "p5": 8.0,
+      "p25": 11.0,
+      "median": 13.0,
+      "p75": 17.0,
+      "p95": 35.0,
+      "p99": 48.12,
+      "max": 87,
+      "mean": 15.9
+    },
+    "test": {
+      "min": 4,
+      "p5": 8.0,
+      "p25": 11.0,
+      "median": 13.0,
+      "p75": 16.0,
+      "p95": 31.0,
+      "p99": 47.0,
+      "max": 82,
+      "mean": 15.08
+    }
+  },
+  "max_length": 128,
+  "truncated_messages": 0,
+  "messages_in_more_than_one_split": 0
+}
