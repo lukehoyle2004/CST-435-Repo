@@ -77,6 +77,9 @@ DEFAULT_PROMPT = "options"
 CONTENT_FREE = ["N/A", "", "[MASK]"]
 
 
+VOCAB_CHUNK = 4096
+
+
 def _compute_in_float32(model: torch.nn.Module) -> None:
     """Keep Linear/Embedding weights in float16 but do every computation in float32.
 
@@ -86,7 +89,13 @@ def _compute_in_float32(model: torch.nn.Module) -> None:
     upcasts its own weight just for its matmul, so the extra memory is one layer.
     """
     for m in model.modules():
-        if isinstance(m, torch.nn.Linear):
+        if isinstance(m, torch.nn.Linear) and m.out_features > VOCAB_CHUNK:
+            # The output layer (32k x 512): upcast it a slice of the vocabulary at a time,
+            # so the float32 copy is ~8 MB instead of 66 MB at once. Same values.
+            m.forward = (lambda mod: lambda x: torch.cat(
+                [F.linear(x, mod.weight[i:i + VOCAB_CHUNK].float()) for i in range(0, mod.out_features, VOCAB_CHUNK)],
+                dim=-1))(m)
+        elif isinstance(m, torch.nn.Linear):
             m.forward = (lambda mod: lambda x: F.linear(
                 x, mod.weight.float(), None if mod.bias is None else mod.bias.float()))(m)
         elif isinstance(m, torch.nn.Embedding):
