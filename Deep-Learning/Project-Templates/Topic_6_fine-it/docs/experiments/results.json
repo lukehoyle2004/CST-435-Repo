@@ -1,0 +1,512 @@
+[
+  {
+    "run_name": "zero-shot-flan-t5-small",
+    "kind": "zero_shot",
+    "base_checkpoint": "google/flan-t5-small@0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
+    "seed": 0,
+    "hyperparams": {
+      "prompt": "options",
+      "calibrated": true,
+      "scoring": "label log-likelihood"
+    },
+    "n_train": 0,
+    "val_macro_f1": 0.6667,
+    "test_accuracy": 0.6902,
+    "test_accuracy_lo": 0.6733,
+    "test_accuracy_hi": 0.7058,
+    "test_macro_f1": 0.6688,
+    "test_macro_f1_lo": 0.6495,
+    "test_macro_f1_hi": 0.6861,
+    "fraud_recall": 0.6042,
+    "fraud_recall_lo": 0.5433,
+    "fraud_recall_hi": 0.661,
+    "delta_macro_f1": null,
+    "delta_macro_f1_lo": null,
+    "delta_macro_f1_hi": null,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.8442,
+        "recall": 0.6487,
+        "f1": 0.7336,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.6983,
+        "recall": 0.735,
+        "f1": 0.7162,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.694,
+        "recall": 0.8045,
+        "f1": 0.7451,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.596,
+        "recall": 0.593,
+        "f1": 0.5945,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.675,
+        "recall": 0.785,
+        "f1": 0.7259,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.7862,
+        "recall": 0.5208,
+        "f1": 0.6266,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.4328,
+        "recall": 0.6042,
+        "f1": 0.5043,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.6978,
+        "recall": 0.71,
+        "f1": 0.7038,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 0.0,
+    "eval_ms_per_message": 605.74,
+    "artifact_sha256": null,
+    "is_deployed": false,
+    "git_sha": "515a91e"
+  },
+  {
+    "run_name": "ft-lr2e-5-ep3",
+    "kind": "fine_tuned",
+    "base_checkpoint": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+    "seed": 42,
+    "hyperparams": {
+      "learning_rate": 2e-05,
+      "epochs": 3,
+      "batch_size": 32,
+      "warmup_ratio": 0.06,
+      "weight_decay": 0.01,
+      "freeze_encoder": false,
+      "n_train": null,
+      "seed": 42,
+      "notes": "The textbook fine-tuning recipe (Devlin et al. range, low end)."
+    },
+    "n_train": 8952,
+    "val_macro_f1": 0.9575,
+    "test_accuracy": 0.9594,
+    "test_accuracy_lo": 0.9525,
+    "test_accuracy_hi": 0.9665,
+    "test_macro_f1": 0.954,
+    "test_macro_f1_lo": 0.9457,
+    "test_macro_f1_hi": 0.962,
+    "fraud_recall": 0.9292,
+    "fraud_recall_lo": 0.8926,
+    "fraud_recall_hi": 0.9594,
+    "delta_macro_f1": 0.2853,
+    "delta_macro_f1_lo": 0.2673,
+    "delta_macro_f1_hi": 0.3043,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.9789,
+        "recall": 0.9776,
+        "f1": 0.9783,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.9764,
+        "recall": 0.93,
+        "f1": 0.9526,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.9602,
+        "recall": 0.9441,
+        "f1": 0.9521,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.9594,
+        "recall": 0.9497,
+        "f1": 0.9545,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.9646,
+        "recall": 0.9666,
+        "f1": 0.9656,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.8919,
+        "recall": 0.9625,
+        "f1": 0.9259,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.9489,
+        "recall": 0.9292,
+        "f1": 0.9389,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.9492,
+        "recall": 0.98,
+        "f1": 0.9643,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 2369.6,
+    "eval_ms_per_message": 44.13,
+    "artifact_sha256": "cb7bf9eca2f50ab06c22a3c40e9ba8f6679516bf62078cdc1874059e11f9988e",
+    "is_deployed": false,
+    "git_sha": "515a91e"
+  },
+  {
+    "run_name": "ft-lr5e-5-ep3",
+    "kind": "fine_tuned",
+    "base_checkpoint": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+    "seed": 42,
+    "hyperparams": {
+      "learning_rate": 5e-05,
+      "epochs": 3,
+      "batch_size": 32,
+      "warmup_ratio": 0.06,
+      "weight_decay": 0.01,
+      "freeze_encoder": false,
+      "n_train": null,
+      "seed": 42,
+      "notes": "Same budget, high end of the recommended learning-rate range."
+    },
+    "n_train": 8952,
+    "val_macro_f1": 0.9701,
+    "test_accuracy": 0.9675,
+    "test_accuracy_lo": 0.9613,
+    "test_accuracy_hi": 0.9737,
+    "test_macro_f1": 0.965,
+    "test_macro_f1_lo": 0.9576,
+    "test_macro_f1_hi": 0.9718,
+    "fraud_recall": 0.9708,
+    "fraud_recall_lo": 0.9476,
+    "fraud_recall_hi": 0.991,
+    "delta_macro_f1": 0.2962,
+    "delta_macro_f1_lo": 0.2792,
+    "delta_macro_f1_hi": 0.3149,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.988,
+        "recall": 0.9763,
+        "f1": 0.9821,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.9741,
+        "recall": 0.94,
+        "f1": 0.9567,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.9716,
+        "recall": 0.9553,
+        "f1": 0.9634,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.9749,
+        "recall": 0.9749,
+        "f1": 0.9749,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.9706,
+        "recall": 0.9645,
+        "f1": 0.9675,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.9216,
+        "recall": 0.9792,
+        "f1": 0.9495,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.9472,
+        "recall": 0.9708,
+        "f1": 0.9588,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.9538,
+        "recall": 0.98,
+        "f1": 0.9667,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 2326.3,
+    "eval_ms_per_message": 46.81,
+    "artifact_sha256": "4748e601f4aff5647641035037ac43ba05acd04aa6ffde4e958369010e6bc21d",
+    "is_deployed": true,
+    "git_sha": "515a91e"
+  },
+  {
+    "run_name": "ft-lr5e-5-ep1",
+    "kind": "fine_tuned",
+    "base_checkpoint": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+    "seed": 42,
+    "hyperparams": {
+      "learning_rate": 5e-05,
+      "epochs": 1,
+      "batch_size": 32,
+      "warmup_ratio": 0.06,
+      "weight_decay": 0.01,
+      "freeze_encoder": false,
+      "n_train": null,
+      "seed": 42,
+      "notes": "One pass over the data -- how much of the gain is already there after a third of the compute?"
+    },
+    "n_train": 8952,
+    "val_macro_f1": 0.9412,
+    "test_accuracy": 0.9402,
+    "test_accuracy_lo": 0.9324,
+    "test_accuracy_hi": 0.948,
+    "test_macro_f1": 0.9328,
+    "test_macro_f1_lo": 0.9233,
+    "test_macro_f1_hi": 0.9419,
+    "fraud_recall": 0.8875,
+    "fraud_recall_lo": 0.8449,
+    "fraud_recall_hi": 0.9238,
+    "delta_macro_f1": 0.264,
+    "delta_macro_f1_lo": 0.2458,
+    "delta_macro_f1_hi": 0.2829,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.9645,
+        "recall": 0.9645,
+        "f1": 0.9645,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.9459,
+        "recall": 0.9175,
+        "f1": 0.9315,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.9521,
+        "recall": 0.9441,
+        "f1": 0.9481,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.9385,
+        "recall": 0.9196,
+        "f1": 0.9289,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.9457,
+        "recall": 0.9457,
+        "f1": 0.9457,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.8534,
+        "recall": 0.9458,
+        "f1": 0.8972,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.9181,
+        "recall": 0.8875,
+        "f1": 0.9025,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.9426,
+        "recall": 0.945,
+        "f1": 0.9438,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 751.5,
+    "eval_ms_per_message": 40.36,
+    "artifact_sha256": "4f50a246c352453f2e3f1fdf7bd1fd2e8b105c110bf17d444bae2163c3c8a696",
+    "is_deployed": false,
+    "git_sha": "515a91e"
+  },
+  {
+    "run_name": "ft-lr5e-5-ep3-n1000",
+    "kind": "fine_tuned",
+    "base_checkpoint": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+    "seed": 42,
+    "hyperparams": {
+      "learning_rate": 5e-05,
+      "epochs": 3,
+      "batch_size": 32,
+      "warmup_ratio": 0.06,
+      "weight_decay": 0.01,
+      "freeze_encoder": false,
+      "n_train": 1000,
+      "seed": 42,
+      "notes": "Data efficiency -- 1,000 labelled messages (11% of train), stratified by intent."
+    },
+    "n_train": 998,
+    "val_macro_f1": 0.8072,
+    "test_accuracy": 0.8394,
+    "test_accuracy_lo": 0.8261,
+    "test_accuracy_hi": 0.8527,
+    "test_macro_f1": 0.8043,
+    "test_macro_f1_lo": 0.7875,
+    "test_macro_f1_hi": 0.8198,
+    "fraud_recall": 0.35,
+    "fraud_recall_lo": 0.2915,
+    "fraud_recall_hi": 0.415,
+    "delta_macro_f1": 0.1355,
+    "delta_macro_f1_lo": 0.1152,
+    "delta_macro_f1_hi": 0.156,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.8794,
+        "recall": 0.9211,
+        "f1": 0.8997,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.8382,
+        "recall": 0.855,
+        "f1": 0.8465,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.9329,
+        "recall": 0.8939,
+        "f1": 0.913,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.8967,
+        "recall": 0.8291,
+        "f1": 0.8616,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.8164,
+        "recall": 0.9374,
+        "f1": 0.8727,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.6978,
+        "recall": 0.7792,
+        "f1": 0.7362,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.84,
+        "recall": 0.35,
+        "f1": 0.4941,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.7845,
+        "recall": 0.8375,
+        "f1": 0.8102,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 484.1,
+    "eval_ms_per_message": 41.42,
+    "artifact_sha256": "7365c2675f8761e627a239bfd30a5bf8e13ffe59015718b7a768d2799327a285",
+    "is_deployed": false,
+    "git_sha": "515a91e"
+  },
+  {
+    "run_name": "head-only-lr1e-3-ep3",
+    "kind": "fine_tuned",
+    "base_checkpoint": "distilbert-base-uncased@12040accade4e8a0f71eabdb258fecc2e7e948be",
+    "seed": 42,
+    "hyperparams": {
+      "learning_rate": 0.001,
+      "epochs": 3,
+      "batch_size": 32,
+      "warmup_ratio": 0.06,
+      "weight_decay": 0.01,
+      "freeze_encoder": true,
+      "n_train": null,
+      "seed": 42,
+      "notes": "Linear probe -- the pre-trained encoder is frozen and only the classifier head learns."
+    },
+    "n_train": 8952,
+    "val_macro_f1": 0.8038,
+    "test_accuracy": 0.8218,
+    "test_accuracy_lo": 0.8079,
+    "test_accuracy_hi": 0.8352,
+    "test_macro_f1": 0.8075,
+    "test_macro_f1_lo": 0.7913,
+    "test_macro_f1_hi": 0.8224,
+    "fraud_recall": 0.7167,
+    "fraud_recall_lo": 0.6596,
+    "fraud_recall_hi": 0.7752,
+    "delta_macro_f1": 0.1388,
+    "delta_macro_f1_lo": 0.1177,
+    "delta_macro_f1_hi": 0.1601,
+    "per_queue": {
+      "card_services": {
+        "precision": 0.8481,
+        "recall": 0.8816,
+        "f1": 0.8645,
+        "support": 760
+      },
+      "transfers": {
+        "precision": 0.8048,
+        "recall": 0.835,
+        "f1": 0.8196,
+        "support": 400
+      },
+      "top_ups": {
+        "precision": 0.827,
+        "recall": 0.7877,
+        "f1": 0.8069,
+        "support": 358
+      },
+      "cash_atm": {
+        "precision": 0.8837,
+        "recall": 0.7638,
+        "f1": 0.8194,
+        "support": 199
+      },
+      "fees_fx": {
+        "precision": 0.8337,
+        "recall": 0.858,
+        "f1": 0.8457,
+        "support": 479
+      },
+      "payments_disputes": {
+        "precision": 0.7578,
+        "recall": 0.7042,
+        "f1": 0.73,
+        "support": 240
+      },
+      "security_fraud": {
+        "precision": 0.8037,
+        "recall": 0.7167,
+        "f1": 0.7577,
+        "support": 240
+      },
+      "account_identity": {
+        "precision": 0.7897,
+        "recall": 0.845,
+        "f1": 0.8164,
+        "support": 400
+      }
+    },
+    "train_runtime_s": 949.3,
+    "eval_ms_per_message": 48.25,
+    "artifact_sha256": "23c4a15486a5aecf42944d31a959f771ff4bd27c4e937f17b72fee87dd3e1459",
+    "is_deployed": false,
+    "git_sha": "515a91e"
+  }
+]

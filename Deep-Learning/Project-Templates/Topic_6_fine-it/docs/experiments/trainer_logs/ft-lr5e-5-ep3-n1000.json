@@ -1,0 +1,87 @@
+{
+ "run_name": "ft-lr5e-5-ep3-n1000",
+ "hyperparams": {
+  "learning_rate": 5e-05,
+  "epochs": 3,
+  "batch_size": 32,
+  "warmup_ratio": 0.06,
+  "weight_decay": 0.01,
+  "freeze_encoder": false,
+  "n_train": 1000,
+  "seed": 42
+ },
+ "best_checkpoint_step": "C:\\Users\\lukeh\\OneDrive\\Documents\\GitHub\\CST-435-Repo\\Deep-Learning\\Project-Templates\\Topic_6_fine-it\\models\\checkpoints\\ft-lr5e-5-ep3-n1000\\_trainer\\checkpoint-96",
+ "best_val_macro_f1": 0.8072025411964973,
+ "log_history": [
+  {
+   "loss": 1.949,
+   "grad_norm": 2.458348512649536,
+   "learning_rate": 4e-05,
+   "epoch": 0.78125,
+   "step": 25
+  },
+  {
+   "eval_loss": 1.4183322191238403,
+   "eval_macro_f1": 0.35637813099395393,
+   "eval_accuracy": 0.535678391959799,
+   "eval_runtime": 65.5089,
+   "eval_samples_per_second": 15.189,
+   "eval_steps_per_second": 0.122,
+   "epoch": 1.0,
+   "step": 32
+  },
+  {
+   "loss": 1.3204,
+   "grad_norm": 2.820065975189209,
+   "learning_rate": 2.6111111111111114e-05,
+   "epoch": 1.5625,
+   "step": 50
+  },
+  {
+   "eval_loss": 0.8486747145652771,
+   "eval_macro_f1": 0.7689127182702522,
+   "eval_accuracy": 0.8090452261306532,
+   "eval_runtime": 67.3822,
+   "eval_samples_per_second": 14.767,
+   "eval_steps_per_second": 0.119,
+   "epoch": 2.0,
+   "step": 64
+  },
+  {
+   "loss": 0.8466,
+   "grad_norm": 4.71289587020874,
+   "learning_rate": 1.2222222222222222e-05,
+   "epoch": 2.34375,
+   "step": 75
+  },
+  {
+   "eval_loss": 0.7007187008857727,
+   "eval_macro_f1": 0.8072025411964973,
+   "eval_accuracy": 0.8371859296482412,
+   "eval_runtime": 66.7338,
+   "eval_samples_per_second": 14.91,
+   "eval_steps_per_second": 0.12,
+   "epoch": 3.0,
+   "step": 96
+  },
+  {
+   "train_runtime": 483.8154,
+   "train_samples_per_second": 6.188,
+   "train_steps_per_second": 0.198,
+   "total_flos": 17544493293888.0,
+   "train_loss": 1.2202615936597188,
+   "epoch": 3.0,
+   "step": 96
+  },
+  {
+   "eval_loss": 0.7007187008857727,
+   "eval_macro_f1": 0.8072025411964973,
+   "eval_accuracy": 0.8371859296482412,
+   "eval_runtime": 67.7283,
+   "eval_samples_per_second": 14.691,
+   "eval_steps_per_second": 0.118,
+   "epoch": 3.0,
+   "step": 96
+  }
+ ]
+}

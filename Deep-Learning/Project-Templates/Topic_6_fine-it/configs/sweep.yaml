@@ -1,0 +1,30 @@
+# The FineTuneFleet sweep. Every entry becomes one ftf_experiments row.
+# All share seed 42, batch size 32, linear decay after a 6% warmup, weight decay 0.01.
+# The deployed checkpoint is the one with the best VALIDATION macro-F1.
+runs:
+  - run_name: ft-lr2e-5-ep3
+    learning_rate: 2.0e-5
+    epochs: 3
+    notes: The textbook fine-tuning recipe (Devlin et al. range, low end).
+
+  - run_name: ft-lr5e-5-ep3
+    learning_rate: 5.0e-5
+    epochs: 3
+    notes: Same budget, high end of the recommended learning-rate range.
+
+  - run_name: ft-lr5e-5-ep1
+    learning_rate: 5.0e-5
+    epochs: 1
+    notes: One pass over the data -- how much of the gain is already there after a third of the compute?
+
+  - run_name: ft-lr5e-5-ep3-n1000
+    learning_rate: 5.0e-5
+    epochs: 3
+    n_train: 1000
+    notes: Data efficiency -- 1,000 labelled messages (11% of train), stratified by intent.
+
+  - run_name: head-only-lr1e-3-ep3
+    learning_rate: 1.0e-3
+    epochs: 3
+    freeze_encoder: true
+    notes: Linear probe -- the pre-trained encoder is frozen and only the classifier head learns.

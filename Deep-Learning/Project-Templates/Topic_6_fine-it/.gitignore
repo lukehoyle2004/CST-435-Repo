@@ -19,3 +19,6 @@ venv/
 .hf_cache/
 models/checkpoints/
 runs/
+runs_*.log
+models/deployed/
+*.tar.gz
