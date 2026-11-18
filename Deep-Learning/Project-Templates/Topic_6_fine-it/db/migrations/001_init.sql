@@ -166,3 +166,10 @@ grant select on ftf_experiments to anon, authenticated;
 grant select on ftf_leaderboard to anon, authenticated;
 revoke all on ftf_latency from anon, authenticated;
 grant select on ftf_latency to anon, authenticated;
+
+-- The server-side key. Granted explicitly because newer Supabase projects can be
+-- created with "grant API access to new tables automatically" switched off.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on ftf_documents, ftf_experiments, ftf_predictions to service_role;
+grant select on ftf_leaderboard, ftf_latency to service_role;
+grant usage, select on all sequences in schema public to service_role;

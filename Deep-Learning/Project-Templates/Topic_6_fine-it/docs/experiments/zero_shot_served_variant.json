@@ -1,0 +1,19 @@
+{
+  "served_checkpoint": "google/flan-t5-small@0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab[fp16-weights]",
+  "leaderboard_run": "zero-shot-flan-t5-small",
+  "n_test": 3076,
+  "agreement_with_float32": 1.0,
+  "n_disagreements": 0,
+  "served_test_macro_f1": 0.6688,
+  "served_test_macro_f1_ci": [
+    0.6495,
+    0.6861
+  ],
+  "float32_test_macro_f1": 0.6688,
+  "float32_test_macro_f1_ci": [
+    0.6495,
+    0.6861
+  ],
+  "served_ms_per_message_local": 1038.3,
+  "why": "float16-stored weights (float32 compute) halve flan-t5-small's memory so it fits Render's 512 MB instance; only the stored weights are rounded."
+}

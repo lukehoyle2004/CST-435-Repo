@@ -31,10 +31,16 @@ services:
         value: ".hf_cache"
       - key: TORCH_NUM_THREADS
         value: "1"
-      # Both models resident by default; set to 1 if the instance runs out of
-      # memory (each switch then costs a visible cold start; see /metrics).
+      # One model in memory at a time: both together ran out of memory on the
+      # 512 MB instance (first deploy, 2026-11-18). Switching endpoints therefore
+      # costs a cold start, which the API reports as load_ms / cold_start.
       - key: FTF_MAX_RESIDENT
-        value: "2"
+        value: "1"
+      # flan-t5-small with float16-stored weights, float32 compute (~155 MB of
+      # weights instead of ~310 MB); agreement with the float32 baseline is in
+      # docs/experiments/zero_shot_served_variant.json.
+      - key: FTF_ZERO_SHOT_HALF_WEIGHTS
+        value: "1"
       - key: MALLOC_ARENA_MAX
         value: "2"
       - key: TOKENIZERS_PARALLELISM

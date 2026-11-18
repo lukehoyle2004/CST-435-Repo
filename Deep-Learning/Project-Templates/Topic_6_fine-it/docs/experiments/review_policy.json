@@ -1,0 +1,18 @@
+{
+  "n": 3076,
+  "accuracy": 0.9675,
+  "share_conf_above_0.99": 0.8732,
+  "share_conf_above_0.90": 0.961,
+  "review_rate": 0.0127,
+  "accuracy_auto_routed": 0.9743,
+  "accuracy_flagged": 0.4359,
+  "share_of_errors_flagged": 0.22,
+  "errors_with_conf_above_0.99": 12,
+  "n_errors": 100,
+  "fraud_messages_missed_and_not_flagged": 6,
+  "fraud_messages": 240,
+  "thresholds": {
+    "review_below_confidence": 0.6,
+    "fraud_floor": 0.1
+  }
+}

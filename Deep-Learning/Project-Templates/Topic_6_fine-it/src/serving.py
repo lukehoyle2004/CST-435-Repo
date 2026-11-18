@@ -15,6 +15,7 @@ at build time (scripts/fetch_model.py).
 """
 from __future__ import annotations
 
+import gc
 import json
 import os
 import threading
@@ -32,10 +33,11 @@ from shared.queues import PRIORITY_QUEUE, QUEUE_NAMES
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The routing policy. Chosen on the VALIDATION split (docs/experiments/review_policy.json):
-# below REVIEW_THRESHOLD the top queue is not trusted, and any message whose
-# fraud probability reaches FRAUD_FLOOR without winning goes to a human anyway --
-# a fraud report routed to the fees team is the expensive mistake.
+# The routing policy, set by design before testing: below REVIEW_THRESHOLD the top
+# queue is not trusted, and any message whose fraud probability reaches FRAUD_FLOOR
+# without winning goes to a human anyway -- a fraud report routed to the fees team
+# is the expensive mistake. docs/experiments/review_policy.json measures what it
+# catches on the test set (1.3% of messages flagged; 22 of 100 errors caught).
 REVIEW_THRESHOLD = float(os.environ.get("FTF_REVIEW_THRESHOLD", "0.60"))
 FRAUD_FLOOR = float(os.environ.get("FTF_FRAUD_FLOOR", "0.10"))
 
@@ -90,7 +92,11 @@ def load_zero_shot() -> Router:
     from src.zero_shot import ZeroShotRouter
     prompt_file = ROOT / "docs" / "experiments" / "zero_shot_prompt_selection.json"
     choice = json.loads(prompt_file.read_text()) if prompt_file.exists() else {}
-    z = ZeroShotRouter(choice.get("chosen", "options"), calibrate=choice.get("calibrate", True))
+    # FTF_ZERO_SHOT_HALF_WEIGHTS=1 stores the weights in float16 (computing in float32)
+    # so the model fits Render's 512 MB instance; docs/experiments/zero_shot_served_variant.json
+    # measures how closely it agrees with the float32 baseline on the leaderboard.
+    half = os.environ.get("FTF_ZERO_SHOT_HALF_WEIGHTS", "0") == "1"
+    z = ZeroShotRouter(choice.get("chosen", "options"), calibrate=choice.get("calibrate", True), half_storage=half)
     return Router("zero_shot", "zero-shot-flan-t5-small", z.checkpoint, z.scores,
                   lambda t: len(z.tok(z.build(t)[0])["input_ids"]))
 
@@ -118,6 +124,7 @@ class Registry:
                 return self._models[kind], 0.0
             while len(self._models) >= self.max_resident:
                 self._models.popitem(last=False)
+                gc.collect()                  # free the evicted weights before loading the next model
             t0 = time.perf_counter()
             try:
                 router = LOADERS[kind]()

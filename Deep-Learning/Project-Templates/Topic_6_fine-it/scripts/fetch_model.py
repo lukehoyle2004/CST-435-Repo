@@ -69,6 +69,9 @@ def main() -> None:
     AutoTokenizer.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
     AutoModelForSeq2SeqLM.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
     print("zero-shot model cached")
+    if os.environ.get("FTF_ZERO_SHOT_HALF_WEIGHTS", "0") == "1":
+        from src.zero_shot import save_half_copy
+        print(f"float16 copy saved to {save_half_copy()}")
 
 
 if __name__ == "__main__":

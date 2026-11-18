@@ -14,13 +14,28 @@ The prompt variant was chosen on the VALIDATION split (scripts/run_sweep.py
 """
 from __future__ import annotations
 
+import os
 import time
+from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from shared.checkpoints import MAX_LENGTH, ZERO_SHOT_MODEL, ZERO_SHOT_REVISION
 from shared.queues import QUEUE_NAMES, QUEUES
+
+# A float16 copy of the pinned flan-t5-small, written once by scripts/fetch_model.py.
+# Converting the float32 checkpoint at load time leaves both copies' buffers behind;
+# loading a file that is already float16 does not.
+HALF_DIR = Path(os.environ.get("FTF_ZERO_SHOT_HALF_DIR",
+                               Path(__file__).resolve().parents[1] / "models" / "zero_shot_fp16"))
+
+
+def save_half_copy(dest: Path = HALF_DIR) -> Path:
+    model = AutoModelForSeq2SeqLM.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
+    model.half().save_pretrained(dest)
+    return dest
 
 # Plain-English names the model can actually say; index-aligned with QUEUE_NAMES.
 LABEL_WORDS = {
@@ -62,17 +77,45 @@ DEFAULT_PROMPT = "options"
 CONTENT_FREE = ["N/A", "", "[MASK]"]
 
 
+def _compute_in_float32(model: torch.nn.Module) -> None:
+    """Keep Linear/Embedding weights in float16 but do every computation in float32.
+
+    Halves the resident weights (~310 MB -> ~155 MB) so the model fits a 512 MB
+    instance. Only the stored weights are rounded; activations, norms and the
+    softmax stay float32 (a plain float16 model overflows inside T5). Each layer
+    upcasts its own weight just for its matmul, so the extra memory is one layer.
+    """
+    for m in model.modules():
+        if isinstance(m, torch.nn.Linear):
+            m.forward = (lambda mod: lambda x: F.linear(
+                x, mod.weight.float(), None if mod.bias is None else mod.bias.float()))(m)
+        elif isinstance(m, torch.nn.Embedding):
+            m.forward = (lambda mod: lambda ids: F.embedding(ids, mod.weight).float())(m)
+        else:
+            for p in m.parameters(recurse=False):      # layer norms: tiny, keep float32
+                p.data = p.data.float()
+
+
 class ZeroShotRouter:
     """Label-likelihood scoring with flan-t5-small. Thread-unsafe; one instance per process."""
 
-    def __init__(self, prompt: str = DEFAULT_PROMPT, calibrate: bool = True, device: str = "cpu"):
+    def __init__(self, prompt: str = DEFAULT_PROMPT, calibrate: bool = True, device: str = "cpu",
+                 half_storage: bool = False):
         self.prompt_name = prompt
         self.calibrate = calibrate
         self.build = PROMPTS[prompt]
         self.device = device
+        self.half_storage = half_storage
         t0 = time.perf_counter()
         self.tok = AutoTokenizer.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION)
+        if half_storage and (HALF_DIR / "config.json").exists():
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(HALF_DIR, dtype=torch.float16, low_cpu_mem_usage=True)
+        else:
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                ZERO_SHOT_MODEL, revision=ZERO_SHOT_REVISION, low_cpu_mem_usage=True,
+                dtype=torch.float16 if half_storage else torch.float32)
+        if half_storage:
+            _compute_in_float32(self.model)
         self.model.eval().to(device)
         self.load_ms = (time.perf_counter() - t0) * 1000
         _, labels = self.build("x")
@@ -83,11 +126,13 @@ class ZeroShotRouter:
 
     @property
     def checkpoint(self) -> str:
-        return f"{ZERO_SHOT_MODEL}@{ZERO_SHOT_REVISION}"
+        tag = "[fp16-weights]" if self.half_storage else ""
+        return f"{ZERO_SHOT_MODEL}@{ZERO_SHOT_REVISION}{tag}"
 
     def scores(self, texts: list[str]) -> torch.Tensor:
         """(len(texts), 8) probabilities over queues (calibrated when enabled)."""
-        p = self._raw(texts)
+        # Small chunks: the decoder logits are (texts x 8 labels x tokens x 32k vocab).
+        p = torch.cat([self._raw(texts[i:i + 4]) for i in range(0, len(texts), 4)])
         if self.prior is None:
             return p
         return self.apply_prior(p)
@@ -103,9 +148,12 @@ class ZeroShotRouter:
         attn = enc.attention_mask.repeat_interleave(k, dim=0)
         labels = self.label_ids.repeat(n, 1)
         mask = self.label_mask.repeat(n, 1)
-        out = self.model(encoder_outputs=(hidden,), attention_mask=attn,
-                         labels=labels.masked_fill(mask == 0, -100))
-        logp = out.logits.log_softmax(-1).gather(-1, labels.unsqueeze(-1)).squeeze(-1)
+        # decoder_input_ids instead of labels: same logits, but no loss (and no
+        # second vocabulary-sized tensor) is computed.
+        dec_in = self.model._shift_right(labels.masked_fill(mask == 0, -100))
+        logits = self.model(encoder_outputs=(hidden,), attention_mask=attn,
+                            decoder_input_ids=dec_in).logits.float()
+        logp = logits.gather(-1, labels.unsqueeze(-1)).squeeze(-1) - logits.logsumexp(-1)
         ll = (logp * mask).sum(-1) / mask.sum(-1)              # mean log-prob per label token
         return ll.view(n, k).softmax(-1)
 

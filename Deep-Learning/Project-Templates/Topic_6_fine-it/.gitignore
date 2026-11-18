@@ -22,3 +22,4 @@ runs/
 runs_*.log
 models/deployed/
 *.tar.gz
+models/zero_shot_fp16/
