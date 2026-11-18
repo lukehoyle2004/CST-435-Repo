@@ -164,8 +164,10 @@ class ZeroShotRouter:
         # decoder_input_ids instead of labels: same logits, but no loss (and no
         # second vocabulary-sized tensor) is computed.
         dec_in = self.model._shift_right(labels.masked_fill(mask == 0, -100))
+        # use_cache=False: scoring never generates a next token, and the default cache would keep
+        # every decoder layer's cross-attention keys/values for all 8 label copies (~200 MB).
         logits = self.model(encoder_outputs=(hidden,), attention_mask=attn,
-                            decoder_input_ids=dec_in).logits.float()
+                            decoder_input_ids=dec_in, use_cache=False).logits.float()
         logp = logits.gather(-1, labels.unsqueeze(-1)).squeeze(-1) - logits.logsumexp(-1)
         ll = (logp * mask).sum(-1) / mask.sum(-1)              # mean log-prob per label token
         return ll.view(n, k).softmax(-1)
