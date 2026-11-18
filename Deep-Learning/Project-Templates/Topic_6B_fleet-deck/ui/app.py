@@ -404,7 +404,7 @@ with tabs[3]:
                 for name, p in fr["models"].items():
                     per_msg = (in_tok * p["input"] + (fr["output_tokens"] + p["reasoning_tokens"]) * p["output"]) / 1e6
                     rows.append({"Option": f"{name} API (prompted)", "Quality (test macro-F1)": "not measured",
-                                 "Model time per message": "not measured (network round trip, typically ~1 s)",
+                                 "Model time per message": "not measured",
                                  "Monthly cost": f"${per_msg * volume:,.2f}",
                                  "Cost per 1,000 messages": f"${per_msg * 1000:,.4f}", "Notes": p["note"]})
                 st.subheader(f"At {volume:,} messages a month")
