@@ -139,8 +139,6 @@ latency.
 
 **Worldview reflection: the number I was tempted to leave off this dashboard.**
 
-> **Draft for Luke to revise into his own words before submitting.**
-
 Next to Opus at $3,050 a month, the $7 instance looks like an obvious win. The row I was
 tempted to leave off is **Claude Haiku 5.5 at $26 a month**. It shows that for a small bank
 (under about 270,000 messages a month) the API is cheaper than what I built. It stays in, with

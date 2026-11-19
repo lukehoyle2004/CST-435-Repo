@@ -97,8 +97,6 @@ can read. That puts five duties on whoever ships the model.
 
 ## 3. Worldview reflection
 
-> **Draft for Luke to revise into his own words before submitting.**
-
 "Moreover, it is required in stewards that a man be found faithful" (1 Corinthians 4:2).
 A fine-tuned model is a thing entrusted. The pre-trained weights were given to me by people
 who spent years building them. The 13,000 labelled questions were written by crowd workers I
