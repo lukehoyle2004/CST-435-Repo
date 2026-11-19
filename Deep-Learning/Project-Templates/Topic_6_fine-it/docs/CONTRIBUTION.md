@@ -55,4 +55,4 @@ records the work phase by phase.
 19. Build FleetDeck (Product 6B) with its tests, CI and deployment.
 20. Write the README, architecture diagram, model card, dataset card and privacy statement.
 21. Write the engineering report, ethics section and worldview reflection.
-22. Record the video walkthroughs and link them in both READMEs.
+22. Record the video walkthrough (FleetDeck demo plus the README) and link it in the README.

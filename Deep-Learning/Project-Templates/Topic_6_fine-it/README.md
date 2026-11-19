@@ -21,7 +21,7 @@ made with numbers, not asserted: on 3,076 held-out messages the fine-tuned route
 | **Supabase project reference** | `rtlxnyiyoyxvmqhvhcdf` (project `finetunefleet`) → https://rtlxnyiyoyxvmqhvhcdf.supabase.co |
 | **GitHub** | https://github.com/lukehoyle2004/CST-435-Repo/tree/main/Deep-Learning/Project-Templates/Topic_6_fine-it |
 | **Interface (Product 6B, FleetDeck)** | https://fleetdeck-luke.streamlit.app ([source](../Topic_6B_fleet-deck)) |
-| **Video walkthrough (Luke Hoyle)** | _added after recording_ |
+| **Video walkthrough (Luke Hoyle)** | https://youtu.be/WvTcdxB-ogU |
 | **Model weights** | GitHub release [`finetunefleet-v1`](https://github.com/lukehoyle2004/CST-435-Repo/releases/tag/finetunefleet-v1) |
 | **Model card / dataset card** | [MODEL_CARD.md](MODEL_CARD.md) · [docs/DATASET_CARD.md](docs/DATASET_CARD.md) |
 | **Pre-training objectives comparison** | [docs/PRETRAINING_OBJECTIVES.md](docs/PRETRAINING_OBJECTIVES.md) |

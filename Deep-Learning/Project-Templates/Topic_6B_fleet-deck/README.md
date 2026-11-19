@@ -12,7 +12,6 @@ routing a month of messages would cost here compared with a frontier LLM API.
 | **Service it targets** | Product 6 "FineTuneFleet": [`Topic_6_fine-it`](../Topic_6_fine-it) in the same repository |
 | **Render API it calls** | https://finetunefleet-api.onrender.com (docs at `/docs`) |
 | **Supabase project reference** | `rtlxnyiyoyxvmqhvhcdf` (project `finetunefleet`) |
-| **Video walkthrough (Luke Hoyle)** | _added after recording_ |
 
 CST-435 / AIT-204 Topic 6, Product 6B (individual). Author: Luke Hoyle. The Streamlit
 application lives in [`ui/`](ui).
